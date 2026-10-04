@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHass } from '@hakit/core';
-import { AutoComplete, Input, Button } from 'antd';
+import { AutoComplete, Input, InputNumber, Button } from 'antd';
 import './style.css';
 import { useLanguage } from '../../i18n/LanguageContext';
 import LightOverviewConfig from './LightOverviewConfig';
@@ -69,6 +69,24 @@ function ConfigField({ field, value, onChange }) {
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder={field.placeholder}
+            />
+          </div>
+        </div>
+      );
+
+    case 'number':
+      return (
+        <div className="config-field">
+          <div className="config-field-row">
+            <label>{field.label}</label>
+            <InputNumber
+              value={value === '' || value === undefined || value === null ? null : Number(value)}
+              onChange={(val) => onChange(val === null ? '' : String(val))}
+              placeholder={field.placeholder}
+              min={field.min}
+              max={field.max}
+              step={field.step || 1}
+              style={{ width: '100%' }}
             />
           </div>
         </div>

@@ -1,0 +1,89 @@
+/* ===== 地图卡片 ===== */
+
+.map-card-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 0 var(--spacing-md) var(--spacing-sm);
+  flex: 0 0 auto;
+}
+
+.map-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--color-text-primary);
+  background: var(--color-card-bg-transparent);
+  border: 1px solid var(--color-border);
+}
+
+.map-card-badge.is-home {
+  color: var(--color-success, #1a9c5b);
+  border-color: var(--color-success, #1a9c5b);
+}
+
+.map-card-badge.is-away {
+  color: var(--color-text-secondary);
+}
+
+.map-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* 地图容器：必须有确定高度，否则高德地图不渲染 */
+.map-card-body {
+  flex: 1 1 auto;
+  min-height: 140px;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--border-radius-medium, 12px);
+  margin: 0 var(--spacing-md) var(--spacing-md);
+  background: var(--color-card-bg-transparent);
+}
+
+.map-card-canvas,
+.map-card-body .amap-container {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* 未配置 / 无坐标 时的占位提示 */
+.map-card-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 140px;
+  padding: var(--spacing-md);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--color-card-bg-transparent);
+  border-radius: var(--border-radius-medium, 12px);
+}
+
+.map-card-footer {
+  flex: 0 0 auto;
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
+/* 暗色主题下高德默认控件的可读性 */
+[data-theme='dark'] .map-card-body .amap-logo,
+[data-theme='dark'] .map-card-body .amap-copyright {
+  opacity: 0.6;
+}

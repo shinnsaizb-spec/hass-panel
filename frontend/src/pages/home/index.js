@@ -43,6 +43,7 @@ import ServerCard from '../../components/ServerCard';
 import PVECard from '../../components/PVECard';
 import DailyQuoteCard from '../../components/DailyQuoteCard';
 import WashingMachineCard from '../../components/WashingMachineCard';
+import MapCard from '../../components/MapCard';
 import GroupTabs from '../../components/GroupTabs';
 import './style.css';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -167,6 +168,7 @@ function Home({ sidebarVisible, setSidebarVisible }) {
       UniversalCard: 300,
       FamilyCard: 500,
       ServerCard: 500,
+      MapCard: 480,
     };
 
 
@@ -782,6 +784,7 @@ function Home({ sidebarVisible, setSidebarVisible }) {
       'ServerCard': ServerCard,
       'WashingMachineCard': WashingMachineCard,
       'DailyQuoteCard': DailyQuoteCard,
+      'MapCard': MapCard,
     };
 
     const Component = CardComponents[card.type];

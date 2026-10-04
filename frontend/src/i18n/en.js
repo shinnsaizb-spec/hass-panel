@@ -180,6 +180,7 @@ export const en = {
         universal: 'Universal Card',
         quotes: 'Daily Quote',
         washingMachine: 'Washing Machine',
+        map: 'Map Location',
     },
 
     // Card Actions
@@ -224,6 +225,7 @@ export const en = {
         dailyquote: 'Daily Quote',
         washingMachine: 'Washing Machine',
         washingmachine: 'Washing Machine',
+        map: 'Location Map',
     },
 
     // Configuration Fields
@@ -258,6 +260,23 @@ export const en = {
         serverName: 'Server Name',
         quotesConfig: 'Quotes Configuration',
         washingMachineConfig: 'Washing Machine Configuration',
+        mapEntity: 'Tracker Entity',
+        mapZoom: 'Zoom Level',
+        mapShowTrail: 'Show Movement Trail',
+    },
+
+    // Map Card
+    map: {
+        noEntity: 'Please select a tracker entity in the configuration first',
+        noPosition: 'This device has not reported a location yet',
+        stateHome: 'Home',
+        stateAway: 'Away',
+        stateUnknown: 'Unknown',
+        updatedAt: 'Updated',
+        battery: 'Battery',
+        accuracy: 'Accuracy',
+        openInMap: 'Open in map',
+        loadFailed: 'Map failed to load. Please check that your map key is configured.',
     },
 
     // WebDAV Related

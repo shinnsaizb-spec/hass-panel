@@ -189,6 +189,7 @@ export const zh = {
       pve: 'PVE监控',
       quotes: '每日一言',
       washingMachine: '洗衣机',
+      map: '地图定位',
     },
 
     // 卡片操作
@@ -235,6 +236,7 @@ export const zh = {
       dailyquote: '每日一言',
       washingMachine: '洗衣机',
       washingmachine: '洗衣机',
+      map: '位置地图',
     },
 
     // 配置字段
@@ -271,6 +273,23 @@ export const zh = {
       serverConfig: '服务器配置',
       quotesConfig: '每日一言配置',
       washingMachineConfig: '洗衣机配置',
+      mapEntity: '定位实体',
+      mapZoom: '缩放级别',
+      mapShowTrail: '显示移动轨迹',
+    },
+
+    // 地图卡片
+    map: {
+      noEntity: '请先在配置里选择要显示的定位实体',
+      noPosition: '该设备当前没有上报位置信息',
+      stateHome: '在家',
+      stateAway: '离家',
+      stateUnknown: '未知',
+      updatedAt: '更新于',
+      battery: '电量',
+      accuracy: '精度',
+      openInMap: '在地图中打开',
+      loadFailed: '地图加载失败，请检查地图密钥是否已配置',
     },
 
     version: {

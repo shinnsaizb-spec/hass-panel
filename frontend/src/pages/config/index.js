@@ -36,6 +36,7 @@ import {
   // mdiWashingMachine,
   mdiHelpCircle,
   mdiViewDashboard,
+  mdiMapMarkerRadius,
 } from '@mdi/js';
 import AddCardModal from '../../components/AddCardModal';
 import EditCardModal from '../../components/EditCardModal';
@@ -690,6 +691,41 @@ const getCardTypes = (t, groups = []) => ({
         label: t('fields.quotesConfig'),
         type: 'quotes-config',
         default: []
+      }
+    ]
+  },
+  MapCard: {
+    name: t('cards.map'),
+    icon: mdiMapMarkerRadius,
+    fields: [
+      {
+        key: 'group',
+        label: t('groups.selectGroup'),
+        type: 'group-select',
+        groups: groups,
+        default: 'default'
+      },
+      {
+        key: 'title',
+        label: t('fields.title'),
+        type: 'text',
+        default: t('cardTitles.map')
+      },
+      {
+        key: 'entity_id',
+        label: t('fields.mapEntity'),
+        type: 'entity',
+        filter: 'device_tracker.*',
+        default: ''
+      },
+      {
+        key: 'zoom',
+        label: t('fields.mapZoom'),
+        type: 'number',
+        min: 3,
+        max: 18,
+        step: 1,
+        default: '15'
       }
     ]
   }
