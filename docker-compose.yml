@@ -1,9 +1,13 @@
-version: '3.8'
-
 services:
   hass-panel:
-    image: ghcr.io/mrtian2016/hass-panel:latest
+    # 从本项目源码构建 —— 这样才包含本分支新增的功能
+    # （原来这里是直接拉取上游镜像 ghcr.io/mrtian2016/hass-panel，那样不含本分支的改动）
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: hass-panel:local
+    container_name: hass-panel
     network_mode: host
     volumes:
       - ./data/hass-panel/:/config/hass-panel
-    restart: unless-stopped 
+    restart: unless-stopped

@@ -1,0 +1,29 @@
+# ==============================================================================
+# Docker 构建上下文排除规则
+# 没有这个文件时，`docker build` 会把整个项目目录（含 1.6G 的 node_modules）
+# 全部传给 Docker 守护进程，在 NAS 上会极慢甚至失败。
+# ==============================================================================
+
+# 依赖目录（镜像里用不到）
+**/node_modules
+backend/.venv
+
+# 本地运行时数据（容器里用 volume 挂载，不进镜像）
+data
+
+# git 历史
+.git
+.gitignore
+
+# Python 缓存 / 临时文件
+**/__pycache__
+*.pyc
+backend/tmp_create_user.py
+
+# 日志
+*.log
+
+# 本地开发脚本
+start-*.bat
+
+# ⚠️ 千万不要忽略 frontend/build —— Dockerfile 里有 `COPY frontend/build /app`
