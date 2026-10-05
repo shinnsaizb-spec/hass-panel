@@ -38,3 +38,9 @@ data
 __pycache__
 .cache
 .vscode
+
+# 依赖目录（含插件开发工具 plugin-dev 的 esbuild 等）
+node_modules/
+
+# 临时脚本
+backend/tmp_create_user.py

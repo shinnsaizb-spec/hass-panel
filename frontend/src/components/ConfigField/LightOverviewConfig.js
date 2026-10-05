@@ -116,6 +116,15 @@ function LightOverviewConfig({field, value,handleLightOverviewChange,getFiltered
                   </div>
                 </div>
 
+                <div className="room-field">
+                  <label>{t('configField.iconSize')}</label>
+                  <Input
+                    value={room.iconSize || ''}
+                    onChange={(e) => handleLightOverviewChange(index, 'iconSize', e.target.value)}
+                    placeholder={t('configField.placeholderIconSize')}
+                  />
+                </div>
+
                 <Button type="primary" style={{ width: '100px' }} danger onClick={() => handleDeleteRoom(index)}>{t('configField.deleteButton')}</Button>
               </div>
             ))}

@@ -20,6 +20,24 @@ function FloorPlan({ lights }) {
     return entityId?.startsWith('light.');
   };
 
+  // 把配置里的「无单位数字」转成像素百分比：留空或纯数字都按 % 处理，
+  // 也兼容用户手滑带上的 % / px。
+  const toPercent = (val, fallback) => {
+    if (val === undefined || val === null || String(val).trim() === '') return `${fallback}%`;
+    const s = String(val).trim();
+    if (/[%px]$/i.test(s)) return s;
+    return `${s}%`;
+  };
+
+  // 图片尺寸（背景图 + 灯光效果一起缩放）是卡片级配置，
+  // 留空则沿用原来的默认值 110%。图标尺寸仍是每个房间单独可调。
+  const imageSize = toPercent(lights.imageSize, 110);
+
+  // 图片位置（背景图 + 灯光效果整体移动）也是卡片级配置，
+  // 留空沿用默认 -5%（和原来背景偏移一致）。这样灯光图永远跟着背景一起挪。
+  const imageLeft = toPercent(lights.imageLeft, -5);
+  const imageTop = toPercent(lights.imageTop, -5);
+
   const handlePressStart = (light) => {
     // 只有 light 类型的实体才支持长按
     if (!isLightEntity(light.entity?.entity_id)) return;
@@ -50,11 +68,19 @@ function FloorPlan({ lights }) {
         src={lights.background}
         alt={t('lightOverview.floorPlan.roomLayout')}
         className="base-layer"
+        style={{ width: imageSize, height: imageSize, left: imageLeft, top: imageTop }}
       />
       
       {lights.rooms.map((light) => {
 
         const isLight = isLightEntity(light.entity?.entity_id);
+
+        // 图标尺寸是每个房间单独可调的（配置里留空则用默认 24rem）。
+        // 单位写什么取决于你想怎么缩放：项目整体走 rem 自适应，
+        // 所以默认用 rem；想固定大小就写 px。
+        // 图片尺寸 / 位置（imageSize / imageLeft / imageTop）都是卡片级、
+        // 背景与灯光效果共用，见组件顶部。
+        const iconSize = light.iconSize || '24rem';
 
         return (
           <React.Fragment key={light.entity?.entity_id}>
@@ -62,13 +88,17 @@ function FloorPlan({ lights }) {
               src={light.image}
               alt={light.name}
               className={`light-layer ${light.state === 'on' ? 'active' : ''}`}
-              style={{ pointerEvents: 'none' }}
+              style={{ pointerEvents: 'none', width: imageSize, height: imageSize, left: imageLeft, top: imageTop }}
             />}
             <button
               className={`room-light-button ${light.state === 'on' ? 'active' : ''}`}
               style={{
                 position: 'absolute',
-                ...light.position
+                ...light.position,
+                // 按钮跟着图标走，维持原来的 24:30（1:1.25）比例，
+                // 否则图标调大后会溢出圆形按钮
+                width: `calc(${iconSize} * 1.25)`,
+                height: `calc(${iconSize} * 1.25)`,
               }}
               onClick={() => light.entity?.service.toggle()}
               onMouseDown={() => isLight ? handlePressStart(light) : undefined}
@@ -80,7 +110,7 @@ function FloorPlan({ lights }) {
             >
               <Icon 
                 icon={light.icon || 'mdi:ceiling-light'}
-                width={"24rem"}
+                width={iconSize}
                 className="light-icon"
               />
             </button>

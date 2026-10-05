@@ -1,0 +1,17 @@
+{
+  "id": "demo-plugin",
+  "name": "示例插件卡片",
+  "version": "1.0.0",
+  "description": "演示用插件卡片：读取一个 HA 实体并显示其状态。",
+  "author": "you",
+  "cardType": "DemoPluginCard",
+  "icon": "mdiHandWave",
+  "group": "plugin",
+  "entry": "plugin.js",
+  "defaultHeight": 220,
+  "configFields": [
+    { "key": "group", "label": "分组", "type": "group-select", "default": "default" },
+    { "key": "title", "label": "标题", "type": "text", "default": "示例插件卡片" },
+    { "key": "entity_id", "label": "实体 ID", "type": "entity", "default": "" }
+  ]
+}

@@ -26,11 +26,13 @@ class InitializeData(BaseModel):
 async def upload_file(file: UploadFile):
     file_name, file_path = await handle_upload_file(file, file_dir=cfg.base.upload_dir)
     logger.info(f"Upload file: {file_name}, {file_path}")
-    # 判断是否为ingress环境
-    if cfg.base.env == "prod" and os.environ.get("IS_ADDON") == "true":
-        # 复制文件到ingress路径
-        file_path = f".{file_path}"
-    return generate_resp(data={"file_name": file_name, "file_path": file_path})
+    # 返回浏览器可直接访问的 URL，而不是服务器文件系统路径。
+    # 原来的相对文件路径（如 ../data/xxx/upload/a.png）在开发环境解析出来是 404，
+    # 只有生产环境靠 nginx 的 alias 才能访问。
+    # 现在由 main.py 把上传目录挂在 /api/upload 下，这里返回相对 URL：
+    # 开发环境走 CRA 代理，生产环境走 nginx 的 /api 代理，HA 插件模式下
+    # 也能正确跟随 <base href>。
+    return generate_resp(data={"file_name": file_name, "file_path": f"./api/upload/{file_name}"})
 
 @router.get("/init_info")
 async def init_info():

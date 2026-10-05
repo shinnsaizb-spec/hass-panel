@@ -47,9 +47,97 @@ axiosInstance.interceptors.response.use(
 );
 
 
+// 判断一个背景地址是不是视频（支持 mp4 / webm / ogv / mov / m4v）
+const VIDEO_BG_RE = /\.(mp4|webm|ogv|mov|m4v)(\?.*)?$/i;
+const BG_VIDEO_ID = 'hass-panel-bg-video';
+
+/** 背景地址是否为视频 */
+export const isVideoBackground = (url) => VIDEO_BG_RE.test((url || '').trim());
+
+/**
+ * Wallpaper Engine 网页壁纸集成。
+ * 壁纸引擎在「切到其他窗口 / 回到桌面」时会回调 setPaused，
+ * 响应它可以让视频跟着暂停/继续，避免在后台白耗资源。
+ *
+ * ⚠️ Wallpaper Engine 的内置浏览器（CEF）**只支持 webm 封装的视频，不支持 mp4(H.264)**，
+ * 所以想当动态壁纸用，背景视频必须转成 webm（推荐 VP9 编码）。
+ * 普通浏览器里 mp4 是正常的，这就是「浏览器正常、壁纸里黑屏」的原因。
+ */
+function bindWallpaperEngineListener() {
+  if (typeof window === 'undefined' || window.__hpWallpaperListenerBound) return;
+  window.__hpWallpaperListenerBound = true;
+
+  const existing = window.wallpaperPropertyListener || {};
+  window.wallpaperPropertyListener = {
+    ...existing,
+    setPaused: (isPaused) => {
+      if (typeof existing.setPaused === 'function') existing.setPaused(isPaused);
+      const video = document.getElementById(BG_VIDEO_ID);
+      if (!video) return;
+      if (isPaused) {
+        video.pause();
+      } else {
+        const playing = video.play();
+        if (playing && typeof playing.catch === 'function') playing.catch(() => {});
+      }
+    },
+  };
+}
+
+/**
+ * 确保页面上存在背景视频元素，并切换到指定地址。
+ * 用 position:fixed + z-index:-1 垫在最底层：html 没有背景，body 的背景会
+ * 传递到画布(canvas)最底层，而负 z-index 的元素绘制在画布之上、正常内容之下，
+ * 所以视频能显示出来又不会挡住任何交互。
+ */
+function ensureBackgroundVideo(url) {
+  let video = document.getElementById(BG_VIDEO_ID);
+  if (!video) {
+    video = document.createElement('video');
+    video.id = BG_VIDEO_ID;
+    video.muted = true;
+    video.loop = true;
+    video.autoplay = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('muted', '');
+    video.setAttribute('aria-hidden', 'true');
+    Object.assign(video.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      zIndex: '-1',
+      pointerEvents: 'none',
+    });
+    document.body.insertBefore(video, document.body.firstChild);
+    bindWallpaperEngineListener();
+  }
+
+  if (video.dataset.src !== url) {
+    video.dataset.src = url;
+    video.src = url;
+  }
+  // 自动播放可能被浏览器策略拦下，失败也不影响其它背景设置
+  const playing = video.play();
+  if (playing && typeof playing.catch === 'function') playing.catch(() => {});
+  return video;
+}
+
+function removeBackgroundVideo() {
+  const video = document.getElementById(BG_VIDEO_ID);
+  if (video) video.remove();
+}
+
+// 保存最近一次的全局配置，供主题切换回调使用（避免闭包捕获到旧值）
+let latestGlobalConfig = null;
+
 // 应用背景设置到body
 export const applyBackgroundToBody = (globalConfig) => {
   if (!globalConfig) return;
+  latestGlobalConfig = globalConfig;
 
   // 检测当前主题模式 - 只检查应用内部的主题标记，不考虑系统偏好
   const isDarkMode = document.documentElement.classList.contains('dark') || 
@@ -62,7 +150,7 @@ export const applyBackgroundToBody = (globalConfig) => {
     document.body.style.backgroundColor = '';
   }
 
-  // 根据主题模式选择背景图片
+  // 根据主题模式选择背景图/背景视频
   let backgroundImage = '';
   if (isDarkMode && globalConfig.darkModeBackgroundImage) {
     backgroundImage = globalConfig.darkModeBackgroundImage;
@@ -70,42 +158,50 @@ export const applyBackgroundToBody = (globalConfig) => {
     backgroundImage = globalConfig.backgroundImage;
   }
 
-  // 设置背景图片
-  if (backgroundImage) {
-    document.body.style.backgroundImage = `url(${backgroundImage})`;
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundPosition = 'center';
-    document.body.style.backgroundAttachment = 'fixed';
-  } else {
+  if (backgroundImage && isVideoBackground(backgroundImage)) {
+    // 视频背景：交给 <video> 元素播放，body 本身不要再用 background-image
     document.body.style.backgroundImage = 'none';
     document.body.style.backgroundSize = '';
     document.body.style.backgroundPosition = '';
     document.body.style.backgroundAttachment = '';
+    ensureBackgroundVideo(backgroundImage);
+  } else {
+    // 图片背景（或没有背景）：移除视频元素
+    removeBackgroundVideo();
+    if (backgroundImage) {
+      document.body.style.backgroundImage = `url(${backgroundImage})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundAttachment = 'fixed';
+    } else {
+      document.body.style.backgroundImage = 'none';
+      document.body.style.backgroundSize = '';
+      document.body.style.backgroundPosition = '';
+      document.body.style.backgroundAttachment = '';
+    }
   }
   
   // 添加主题变化监听器
   if (!window.themeChangeListenerAdded) {
     window.themeChangeListenerAdded = true;
-    
+
+    // 统一用 latestGlobalConfig，保证主题切换时拿到的是最新配置
+    const reapply = () => {
+      if (latestGlobalConfig) applyBackgroundToBody(latestGlobalConfig);
+    };
+
     // 监听系统主题变化
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      applyBackgroundToBody(globalConfig);
-    });
-    
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', reapply);
+
     // 监听HTML类变化以检测主题切换
-    const observer = new MutationObserver(() => {
-      applyBackgroundToBody(globalConfig);
-    });
-    
+    const observer = new MutationObserver(reapply);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class', 'data-theme']
     });
-    
+
     // 监听自定义主题变化事件
-    document.addEventListener('themeChange', () => {
-      applyBackgroundToBody(globalConfig);
-    });
+    document.addEventListener('themeChange', reapply);
   }
 };
 
@@ -133,13 +229,20 @@ export const configApi = {
   saveConfig: async (config) => {
     try {
       const response = await axiosInstance.post('/user_config/config', config);
-      
-      // 保存配置时自动应用背景设置
+      const data = response.data;
+
+      // ⚠️ 后端出错时也会返回 HTTP 200，错误码只写在 body 的 code 里。
+      // 不判断的话前端会把失败当成功提示（用户看到「保存成功」但卡片其实没存）。
+      if (data && typeof data.code !== 'undefined' && data.code !== 200) {
+        throw new Error(data.error || data.message || '保存失败');
+      }
+
+      // 保存配置时自动应用背景设置（只在真正成功后才应用）
       if (config.globalConfig) {
         applyBackgroundToBody(config.globalConfig);
       }
-      
-      return response.data;
+
+      return data;
     } catch (error) {
       throw error;
     }
@@ -253,7 +356,10 @@ export const configApi = {
       
       // 保存更新后的配置
       await configApi.saveConfig(updatedConfig);
-      
+
+      // 同步刷新运行时缓存，让地图卡片等能立刻读到新值（如高德 Key）
+      window.globalConfigCache = updatedConfig.globalConfig;
+
       // 应用背景设置到body
       applyBackgroundToBody(updatedConfig.globalConfig);
       
@@ -549,6 +655,69 @@ export const systemApi = {
   }
 }; 
 
+// 通知 / webhook 相关 API
+export const notifyApi = {
+  // 获取 webhook 地址与令牌（需登录）
+  getInfo: async () => {
+    try {
+      const response = await axiosInstance.get('/notify/info');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 发送测试通知：走 webhook（用 token 校验，不需要登录态）
+  sendTest: async (token, title, message, level = 'info') => {
+    try {
+      const response = await publicAxiosInstance.post(
+        `/notify/webhook?token=${encodeURIComponent(token)}`,
+        { title, message, level }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 历史消息列表（需登录）。type: all | persisted | recent
+  getHistory: async (type = 'all', limit = 50, offset = 0) => {
+    try {
+      const response = await axiosInstance.get('/notify/history', {
+        params: { type, limit, offset },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 标记已读：传 id 或 all=true
+  markRead: async ({ id = '', all = false } = {}) => {
+    try {
+      const response = await axiosInstance.post('/notify/read', { id, all });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 删除单条
+  removeMessage: async (id) => {
+    try {
+      const response = await axiosInstance.delete(`/notify/message/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 清空：all | persisted | recent
+  clear: async (type = 'all') => {
+    try {
+      const response = await axiosInstance.delete('/notify/clear', { params: { type } });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
 export const hassApi = {
   // 获取用电量统计数据
   getEnergyStatistics: async (entityId) => {
@@ -577,5 +746,84 @@ export const hassApi = {
       throw error;
     }
   } 
+};
+
+// 卡片插件相关 API（MoviePilot 式：上传插件包 → 重启/重扫即生效）
+// ⚠️ axiosInstance 的 baseURL 已是 './api'，这里路径不要再带 /api 前缀，否则会变成 /api/api/...
+export const pluginApi = {
+  // 获取已安装插件列表
+  list: async () => {
+    try {
+      const response = await axiosInstance.get('/plugins');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 重新扫描插件目录（上传新插件后无需重启容器）
+  rescan: async () => {
+    try {
+      const response = await axiosInstance.post('/plugins/rescan');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 上传插件压缩包（.zip），自动安装并重扫
+  upload: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await axiosInstance.post('/plugins/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 获取全部插件（含已禁用），供「插件管理」页
+  listAll: async () => {
+    try {
+      const response = await axiosInstance.get('/plugins/all');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 重命名插件（只改显示名；name 传空字符串则恢复原名）
+  rename: async (id, name) => {
+    try {
+      const response = await axiosInstance.post(
+        `/plugins/${encodeURIComponent(id)}/rename`,
+        { name }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 启用 / 禁用插件
+  setEnabled: async (id, enabled) => {
+    try {
+      const response = await axiosInstance.post(
+        `/plugins/${encodeURIComponent(id)}/${enabled ? 'enable' : 'disable'}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 卸载插件（删除插件目录）
+  uninstall: async (id) => {
+    try {
+      const response = await axiosInstance.delete(`/plugins/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
 

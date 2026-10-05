@@ -44,6 +44,11 @@ if [ ! -d "$CONFIG_DIR/upload" ]; then
     mkdir -p "$CONFIG_DIR/upload"
 fi
 
+# 创建插件目录（MoviePilot 式：把插件文件夹丢进来，重启/重扫即生效）
+if [ ! -d "$CONFIG_DIR/plugins" ]; then
+    mkdir -p "$CONFIG_DIR/plugins"
+fi
+
 # 如果 go2rtc.yaml 文件不存在，则创建
 if [ ! -f "$CONFIG_DIR/go2rtc.yaml" ]; then
     cp /etc/go2rtc.yaml "$CONFIG_DIR/go2rtc.yaml"

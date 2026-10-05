@@ -68,8 +68,10 @@ def get_file_name(filename, file_dir):
 
 async def check_hass_token(hass_url: str, hass_token: str):
     """验证Home Assistant token"""
-    
-    async with aiohttp.ClientSession() as session:
+    # 必须显式设超时：aiohttp 默认总超时是 5 分钟，
+    # HA 不可达时会让前端「获取配置」一直转圈。
+    timeout = aiohttp.ClientTimeout(total=8)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
         try:
             hass_token = hass_token.replace("Bearer ", "")
             async with session.get(

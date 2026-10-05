@@ -727,3 +727,76 @@
   }
 }
 
+/* ===== 地图卡片：多设备配置 ===== */
+.map-trackers-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-tracker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  background: var(--color-card-bg-transparent);
+}
+
+.map-tracker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-tracker-icon-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+.map-tracker-icon-preview {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  font-size: 22px;
+}
+
+.map-trackers-empty {
+  padding: 12px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--border-radius-medium);
+}
+
+.map-trackers-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* 字段下方的说明文字 */
+.config-field-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+/* 开关类型的字段：开关缩小并靠右，整行更紧凑 */
+.config-field-row-switch {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.config-field-row-switch .ant-switch {
+  justify-self: end;
+  flex: 0 0 auto;
+}
+

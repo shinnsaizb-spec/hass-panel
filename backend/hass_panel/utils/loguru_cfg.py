@@ -12,6 +12,7 @@ logger.remove()
 
 from hass_panel.utils.log_handler import CompatibleSMTPSSLHandler
 from hass_panel.utils.config import cfg
+from hass_panel.utils.safe_fs import safe_remove
 
 # exce_handler 自动发送邮件handler
 try:
@@ -53,13 +54,19 @@ for h in LOG_HANDLER:
     rtt = int(re.match(r'(\d+) days', h.get('retention')).group(1)) if h.get('retention') else None
     if rtt and isinstance(h['sink'], str):
         for p in glob.glob(f'{LOG_OUTPUT_DIR}/*'):
-            pattern = h['sink'].format(time=r"(\d+-\d+-\d+_\d+-\d+-\d+_\d+)")
-            obj = re.match(f"^{pattern}$", p)
+            # 必须先把路径转义再拼接时间占位符的正则。
+            # 直接 format 的话，Windows 的路径分隔符 "\" 会把紧随其后的 "(" 转义掉，
+            # 导致 re.match 抛出 "unbalanced parenthesis"（首次启动因日志目录为空而侥幸不触发）。
+            # 同时统一成 "/" 再比较，避免 os.path.join 的 "\" 与 glob 返回的 "/" 不一致。
+            pattern = re.escape(h['sink'].replace('\\', '/')).replace(
+                re.escape('{time}'), r"(\d+-\d+-\d+_\d+-\d+-\d+_\d+)"
+            )
+            obj = re.match(f"^{pattern}$", p.replace('\\', '/'))
             if obj:
                 timestr = obj.group(1)
                 dt = datetime.datetime.strptime(timestr, '%Y-%m-%d_%H-%M-%S_%f')
                 if (datetime.datetime.now()-dt).days > rtt:
-                    os.remove(p)
+                    safe_remove(p)
 
 class InterceptHandler(logging.Handler):
     """

@@ -1,7 +1,9 @@
 FROM ghcr.io/hassio-addons/base:17.1.0
 
 # 安装依赖
-RUN apk add --no-cache nginx gettext curl jq unzip tzdata python3 py3-pip rsync vim supervisor 
+# ffmpeg 是必须的：很多摄像头输出 H.265/HEVC，而浏览器 WebRTC 只认 H.264，
+# go2rtc 要靠 ffmpeg 转码。缺了它画面会一直卡在 loading 且不报错。
+RUN apk add --no-cache nginx gettext curl jq unzip tzdata python3 py3-pip rsync vim supervisor ffmpeg
 
 # 安装go2rtc 判断系统架构
 COPY docker/software/go2rtc_* /tmp/

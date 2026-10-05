@@ -1,50 +1,20 @@
 /* ===== 地图卡片 ===== */
 
-.map-card-status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 0 var(--spacing-md) var(--spacing-sm);
-  flex: 0 0 auto;
-}
-
-.map-card-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 999px;
-  color: var(--color-text-primary);
-  background: var(--color-card-bg-transparent);
-  border: 1px solid var(--color-border);
-}
-
-.map-card-badge.is-home {
-  color: var(--color-success, #1a9c5b);
-  border-color: var(--color-success, #1a9c5b);
-}
-
-.map-card-badge.is-away {
-  color: var(--color-text-secondary);
-}
-
-.map-card-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
+/* 地图卡片整体裁剪：地图是「按自己渲染尺寸自绘」的，卡片变小时容易超出卡片框
+   （下拉屏里尤其明显），这里强制把整张卡片裁一下。 */
+.map-card {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden !important;
 }
 
 /* 地图容器：必须有确定高度，否则高德地图不渲染 */
 .map-card-body {
-  flex: 1 1 auto;
-  min-height: 140px;
+  flex: 1 1 0;
+  min-height: 0;
   position: relative;
-  overflow: hidden;
+  overflow: hidden !important;
   border-radius: var(--border-radius-medium, 12px);
   margin: 0 var(--spacing-md) var(--spacing-md);
   background: var(--color-card-bg-transparent);
@@ -56,7 +26,188 @@
   width: 100% !important;
 }
 
-/* 未配置 / 无坐标 时的占位提示 */
+/* ===== 左上角设备列表 ===== */
+.map-card-list {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  max-width: 58%;
+  max-height: calc(100% - 20px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border-radius: var(--border-radius-medium, 12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+
+[data-theme='dark'] .map-card-list {
+  background: rgba(28, 28, 30, 0.9);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.map-card-list-title {
+  flex: 0 0 auto;
+  padding: 7px 10px 5px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.map-card-list-items {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.map-card-list-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 7px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+  transition: background 0.15s ease;
+}
+
+.map-card-list-item:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.14);
+}
+
+.map-card-list-item.is-active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.map-card-list-item.is-active .map-card-list-state {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.map-card-list-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.map-card-list-dot {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.map-card-list-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-card-list-state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+/* ===== 右下角地图控制按钮 ===== */
+/* 当桌面壁纸用时滚轮不可用，所以放大/缩小/复位都做成按钮 */
+.map-card-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-card-ctrl {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: background 0.15s ease, transform 0.1s ease, color 0.15s ease;
+}
+
+[data-theme='dark'] .map-card-ctrl {
+  background: rgba(38, 38, 40, 0.92);
+}
+
+.map-card-ctrl:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.map-card-ctrl:active {
+  transform: scale(0.94);
+}
+
+/* ===== 底部信息条（精度框） ===== */
+/* z-index 给到 1000：地图容器和高德 logo 会抢层级，
+   这样精度框才能盖在高德 logo 上面，而不是被 logo 压住。 */
+.map-card-footer {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 20px);
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+}
+
+[data-theme='dark'] .map-card-footer {
+  background: rgba(28, 28, 30, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.map-card-footer-name {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.map-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ===== 占位提示 ===== */
 .map-card-placeholder {
   display: flex;
   flex-direction: column;
@@ -64,7 +215,7 @@
   justify-content: center;
   gap: 10px;
   height: 100%;
-  min-height: 140px;
+  min-height: 180px;
   padding: var(--spacing-md);
   text-align: center;
   font-size: 13px;
@@ -72,14 +223,6 @@
   color: var(--color-text-secondary);
   background: var(--color-card-bg-transparent);
   border-radius: var(--border-radius-medium, 12px);
-}
-
-.map-card-footer {
-  flex: 0 0 auto;
-  padding: 0 var(--spacing-md) var(--spacing-md);
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-align: right;
 }
 
 /* 暗色主题下高德默认控件的可读性 */

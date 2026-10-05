@@ -1,5 +1,4 @@
 import React from 'react';
-// import Icon from '@mdi/react';
 import { mdiMotionSensor } from '@mdi/js';
 import { useLanguage } from '../../i18n/LanguageContext';
 import BaseCard from '../BaseCard';
@@ -9,42 +8,47 @@ import './style.css';
 function MotionCard({ config }) {
   const titleVisible = config.titleVisible;
   const { t } = useLanguage();
-  const motionLogs = useLogs(config.motion_entity_id || '');
-  const luxHistory = useHistory(config.lux_entity_id || '');
+
+  const motionId = (config.motion_entity_id || '').trim();
+  const luxId = (config.lux_entity_id || '').trim();
+
+  // ⚠️ hakit 的 useHistory 在实体 ID 为空时 loading 会永远停在 true
+  // （它初始就是 true，只有订阅回调成功后才置 false），
+  // 所以判断 loading 时必须把「没配置实体」的情况排除掉，
+  // 否则卡片会一直卡在「加载中」。
+  // 另外 useLogs 返回的是纯数组、并没有 loading 字段。
+  const motionLogs = useLogs(motionId);
+  const luxHistory = useHistory(luxId);
+
+  const loading = luxId ? luxHistory.loading : false;
+
   // 格式化时间戳
   const formatTime = (timestamp) => {
     const date = new Date(timestamp * 1000); // 转换为毫秒
     return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     });
   };
 
-  // 使用 motionLogs 处理历史记录，只在数据加载完成后处理
-  const history = (!luxHistory.loading) 
-    ? motionLogs
-      .map(record => {
-        // 查找对应时间点的照度值
-        const luxRecord = luxHistory.entityHistory?.find(
-          lux => Math.abs(lux.lu - record.when) < 1 // 1秒内的记录视为同时发生
-        );
-        
-        // 只返回找到照度值的记录
-        if (luxRecord) {
-          return {
-            time: formatTime(record.when),
-            motion: t('motion.presence'),
-            lux: luxRecord.s
-          };
-        }
-        return null;
-      })
-      .filter(record => record !== null) // 过滤掉没有照度值的记录
-      .slice(0, 5) // 只取前5条记录
-    : [];
-
-  
+  const records = loading
+    ? []
+    : (motionLogs || [])
+        .map((record) => {
+          // 没配照度传感器：只显示「有人移动」的时间点
+          if (!luxId) {
+            return { time: formatTime(record.when), lux: null };
+          }
+          // 配了就找 1 秒内的照度值，找不到就跳过这条
+          const luxRecord = luxHistory.entityHistory?.find(
+            (lux) => Math.abs(lux.lu - record.when) < 1
+          );
+          if (!luxRecord) return null;
+          return { time: formatTime(record.when), lux: luxRecord.s };
+        })
+        .filter(Boolean)
+        .slice(0, 5); // 只取前5条记录
 
   return (
     <BaseCard
@@ -56,15 +60,19 @@ function MotionCard({ config }) {
         <div className="today-section">
           <h3>{t('motion.today')}</h3>
           <div className="history-list">
-            {(motionLogs.loading || luxHistory.loading) ? (
+            {loading ? (
               <div className="loading">{t('motion.loading')}</div>
+            ) : records.length === 0 ? (
+              <div className="loading">{t('motion.noRecords')}</div>
             ) : (
-              history?.map((record, index) => (
+              records.map((record, index) => (
                 <div key={index} className="history-item">
                   <div className="time">{record.time}</div>
                   <div className="record-content">
                     <span>
-                      {t('motion.record').replace('%1', record.lux)}
+                      {record.lux === null
+                        ? t('motion.presence')
+                        : t('motion.record').replace('%1', record.lux)}
                     </span>
                   </div>
                 </div>
@@ -77,4 +85,4 @@ function MotionCard({ config }) {
   );
 }
 
-export default MotionCard; 
+export default MotionCard;

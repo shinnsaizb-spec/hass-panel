@@ -5,11 +5,58 @@
     transform: translate(-50%, -50%);
     background: var(--color-card-bg);
     border-radius: var(--border-radius-medium);
-    padding: 24px;
+    padding: 0;
     width: 90%;
     max-width: 480px;
+    max-height: 90vh;
+    /* 整体不滚动：分成 标题 / 可滚动主体 / 底部按钮 三段 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
     box-shadow: 0 4px 12px var(--color-shadow);
     z-index: 1001;
+  }
+
+  /* 标题：固定在顶部不动，和下面的滚动区用分隔线 + 阴影明显分开 */
+  .global-config-modal-header {
+    flex: 0 0 auto;
+    padding: 20px 24px 18px;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.18);
+  }
+
+  .global-config-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--color-text-primary);
+  }
+
+  /* 中间设置区：唯一会滚动的部分 */
+  .global-config-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* 上下都留出间距，别让内容贴着分隔线 */
+    padding: 18px 24px 22px;
+  }
+
+  /* 底部按钮：固定在底部不动，向上打阴影和滚动区分开 */
+  .global-config-modal-footer {
+    flex: 0 0 auto;
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 8px -4px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 深色主题下阴影要更重一点才看得出层次 */
+  [data-theme='dark'] .global-config-modal-header {
+    box-shadow: 0 4px 8px -4px rgba(0, 0, 0, 0.55);
+  }
+
+  [data-theme='dark'] .global-config-modal-footer {
+    box-shadow: 0 -4px 8px -4px rgba(0, 0, 0, 0.55);
   }
   
   .global-config-modal-overlay {
@@ -58,12 +105,17 @@
     color: var(--color-text-secondary);
     margin-top: 4px;
   }
+
+  .global-config-form-item .hint.webhook-error {
+    color: var(--color-error);
+    font-weight: 500;
+  }
   
   .global-config-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 24px;
+    margin-top: 0;
   }
   
   .global-config-actions button {
@@ -72,6 +124,16 @@
     font-size: 14px;
     cursor: pointer;
     transition: all 0.3s;
+    /* 保存时按钮里要塞一个转圈图标，用 inline-flex 保证对齐 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .global-config-actions button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
   
   .global-config-actions .cancel {
@@ -185,6 +247,57 @@
   
   .global-config-form-item .switch-group .ant-switch-checked {
     background: var(--color-primary) !important;
+  }
+  
+  .global-config-section {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .global-config-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-top: 4px;
+    padding: 8px 2px;
+    border: none;
+    border-bottom: 1px dashed var(--color-border);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .global-config-section-title:hover {
+    opacity: 0.85;
+  }
+
+  .global-config-section-title svg {
+    flex: 0 0 auto;
+  }
+
+  .global-config-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 16px;
+  }
+  
+  .global-config-form-item input[type="number"] {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-small);
+    background: var(--color-background);
+    color: var(--color-text-primary);
+  }
+  
+  .global-config-form-item input[readonly] {
+    color: var(--color-text-secondary);
   }
   
   .global-config-form-item .image-preview {

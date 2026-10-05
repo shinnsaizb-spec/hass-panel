@@ -1,0 +1,40 @@
+/* 内容随卡片尺寸缩放用的舞台（见 index.js） */
+
+.hp-scaled-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 主页网格里，ScaledCard 的外层 wrapper 正好是 `.react-grid-item > div`，
+   会拿到主页那条全局的「玻璃卡片底 + 边框 + 阴影」——也就是卡片的外观。
+   所以里面真正的卡片组件要把自己的底色/边框/阴影去掉，否则会叠成两层
+   （就是用户看到的「卡片后面多了一层白的」）。
+   下拉屏里 ScaledCard 不在 `.react-grid-item` 的直接子级，这条不会命中，卡片底色保留。 */
+.react-grid-item > div.hp-scaled-card .hp-scaled-stage > * {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ===== 卡片标题不随卡片缩放 =====
+   标题在缩放舞台里会被一起放大/缩小，这里给它做「反向缩放」抵消掉：
+   - transform: scale(1/s) 让标题按原始大小渲染；
+   - width: 100%*s 让标题反缩放后仍然铺满卡片宽度；
+   - margin-bottom 把占位高度也一起抵消，保证下面的正文位置正确。 */
+.hp-scaled-stage .card-header {
+  transform: scale(calc(1 / var(--hp-scale, 1)));
+  transform-origin: top left;
+  width: calc(100% * var(--hp-scale, 1));
+  margin-bottom: calc(var(--card-title-h, 54px) * (1 / var(--hp-scale, 1) - 1));
+}
+
+/* identity ScaledCard 会直接返回 BaseCard（主页外层卡片规则将其 margin 清为 0），
+   非 identity 则多一层 hp-scaled-stage，BaseCard 自带的 16px margin-top 会漏出来，
+   且再被整体 scale 放大/缩小，于是标题栏整体上下错位。缩放舞台中的卡片也清掉该 margin，
+   让同一行的标题顶边始终一致。 */
+.hp-scaled-stage .base-card {
+  margin-top: 0 !important;
+}

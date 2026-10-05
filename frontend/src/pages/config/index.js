@@ -37,7 +37,12 @@ import {
   mdiHelpCircle,
   mdiViewDashboard,
   mdiMapMarkerRadius,
+  mdiBellRing,
+  mdiUpload,
+  mdiPuzzleOutline,
 } from '@mdi/js';
+import * as mdiIcons from '@mdi/js';
+import { getPluginCardCatalog } from '../../plugin/loader';
 import AddCardModal from '../../components/AddCardModal';
 import EditCardModal from '../../components/EditCardModal';
 // import Modal from '../../components/Modal';
@@ -48,8 +53,9 @@ import { useNavigate } from 'react-router-dom';
 import GlobalConfig from '../../components/GlobalConfig';
 import './style.css';
 import VersionListModal from '../../components/VersionList';
-import BottomInfo from '../../components/BottomInfo';
 import GroupManager from '../../components/GroupManager';
+import UploadPluginModal from '../../components/UploadPluginModal';
+import PluginManagerModal from '../../components/PluginManagerModal';
 
 // 添加默认图标常量
 const DEFAULT_CARD_ICON = mdiHelpCircle;
@@ -569,6 +575,27 @@ const getCardTypes = (t, groups = []) => ({
         default: ''
       },
       {
+        key: 'imageSize',
+        label: t('fields.imageSize'),
+        type: 'text',
+        placeholder: t('fields.placeholderImageSize'),
+        default: ''
+      },
+      {
+        key: 'imageLeft',
+        label: t('fields.imageLeft'),
+        type: 'text',
+        placeholder: t('fields.placeholderImageLeft'),
+        default: ''
+      },
+      {
+        key: 'imageTop',
+        label: t('fields.imageTop'),
+        type: 'text',
+        placeholder: t('fields.placeholderImageTop'),
+        default: ''
+      },
+      {
         key: 'rooms',
         label: t('fields.roomsConfig'),
         type: 'light-overview-config',
@@ -712,11 +739,10 @@ const getCardTypes = (t, groups = []) => ({
         default: t('cardTitles.map')
       },
       {
-        key: 'entity_id',
-        label: t('fields.mapEntity'),
-        type: 'entity',
-        filter: 'device_tracker.*',
-        default: ''
+        key: 'trackers',
+        label: t('fields.mapTrackers'),
+        type: 'map-trackers-config',
+        default: []
       },
       {
         key: 'zoom',
@@ -726,10 +752,84 @@ const getCardTypes = (t, groups = []) => ({
         max: 18,
         step: 1,
         default: '15'
+      },
+      {
+        key: 'convertCoord',
+        label: t('fields.mapConvertCoord'),
+        type: 'switch',
+        default: true,
+        hint: t('fields.mapConvertCoordHint')
+      }
+    ]
+  },
+  NotifyHistoryCard: {
+    name: t('cards.notify'),
+    icon: mdiBellRing,
+    fields: [
+      {
+        key: 'group',
+        label: t('groups.selectGroup'),
+        type: 'group-select',
+        groups: groups,
+        default: 'default'
+      },
+      {
+        key: 'title',
+        label: t('fields.title'),
+        type: 'text',
+        default: t('cardTitles.notify')
+      },
+      {
+        key: 'maxItems',
+        label: t('fields.notifyMaxItems'),
+        type: 'number',
+        min: 1,
+        max: 200,
+        step: 1,
+        default: '20',
+        hint: t('fields.notifyMaxItemsHint')
+      },
+      {
+        key: 'directImage',
+        label: t('fields.notifyDirectImage'),
+        type: 'switch',
+        default: false,
+        hint: t('fields.notifyDirectImageHint')
       }
     ]
   }
 });
+
+// 把「插件卡片」合并进卡片目录，供「添加卡片」列表与编辑页使用。
+// 插件图标是 @mdi/js 的图标名字符串（如 "mdiBellRing"），这里解析成真实路径。
+function getMergedCardTypes(t, groups = []) {
+  const types = getCardTypes(t, groups);
+  getPluginCardCatalog().forEach((c) => {
+    const rawFields =
+      c.configFields && c.configFields.length
+        ? c.configFields
+        : [
+            {
+              key: 'group',
+              label: t('groups.selectGroup'),
+              type: 'group-select',
+              default: 'default',
+            },
+          ];
+    // 插件 manifest 是静态 JSON，拿不到运行时的分组列表；
+    // 这里给所有 group-select 字段补上当前分组，保证插件卡片也能正确选分组。
+    const fields = rawFields.map((f) =>
+      f.type === 'group-select' && !f.groups ? { ...f, groups } : f
+    );
+    types[c.cardType] = {
+      name: c.name,
+      icon: mdiIcons[c.icon] || DEFAULT_CARD_ICON,
+      fields,
+      plugin: true,
+    };
+  });
+  return types;
+}
 
 
 function ConfigPage({ sidebarVisible, setSidebarVisible }) {
@@ -739,7 +839,16 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
   const [previewConfig, setPreviewConfig] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
+  const [showUploadPlugin, setShowUploadPlugin] = useState(false);
+  const [showPluginManager, setShowPluginManager] = useState(false);
   const [loading, setLoading] = useState(true);
+  // 插件是运行时加载的，加载完成后广播事件；这里监听以触发重渲染，让插件卡片出现在列表里
+  const [, setPluginTick] = useState(0);
+  useEffect(() => {
+    const onPluginsLoaded = () => setPluginTick((v) => v + 1);
+    window.addEventListener('hasspanel:plugins-loaded', onPluginsLoaded);
+    return () => window.removeEventListener('hasspanel:plugins-loaded', onPluginsLoaded);
+  }, []);
   const { t } = useLanguage();
   const isMobile = window.innerWidth < 768;
   const navigate = useNavigate();
@@ -766,6 +875,7 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
             ...card,
             visible: card.visible !== false,
             titleVisible: card.titleVisible !== false,
+            inDrawer: card.inDrawer === true,
             group: card.group || 'default'
           })));
           setGlobalConfig(config.globalConfig);
@@ -805,7 +915,8 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
       message.success(t('config.saveSuccess'));
     } catch (error) {
       console.error('保存配置失败:', error);
-      message.error(t('config.saveFailed'));
+      // 带上具体原因，否则用户只看到「保存失败」不知道哪出了问题
+      message.error(`${t('config.saveFailed')}${error?.message ? '：' + error.message : ''}`);
     }
   };
 
@@ -832,7 +943,8 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
         setCards(importedConfig.cards.map(card => ({
           ...card,
           visible: card.visible !== false,
-          titleVisible: card.titleVisible !== false
+          titleVisible: card.titleVisible !== false,
+          inDrawer: card.inDrawer === true
         })));
         
         
@@ -947,11 +1059,12 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
       config: {},
       visible: true,
       titleVisible: true,
+      inDrawer: false,
       group: 'default'
     };
 
     // 添加默认配置
-    const cardType = getCardTypes(t, groups)[type];
+    const cardType = getMergedCardTypes(t, groups)[type];
     if (cardType && cardType.fields) {
       cardType.fields.forEach(field => {
         if (field.default !== undefined) {
@@ -1011,6 +1124,23 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
           return {
             ...card,
             titleVisible: card.titleVisible === false ? true : false
+          };
+        }
+        return card;
+      });
+      setHasUnsavedChanges(true);
+      return newCards;
+    });
+  };
+
+  // 处理卡片是否放入顶部下拉面板
+  const handleDrawerChange = (cardId) => {
+    setCards(prevCards => {
+      const newCards = prevCards.map(card => {
+        if (card.id === cardId) {
+          return {
+            ...card,
+            inDrawer: card.inDrawer !== true
           };
         }
         return card;
@@ -1126,6 +1256,22 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
           }
 
             <Button
+              className="upload-plugin-button"
+              onClick={() => setShowUploadPlugin(true)}
+              icon={<Icon path={mdiUpload} size={12} />}
+            >
+              {t('config.uploadPlugin')}
+            </Button>
+
+            <Button
+              className="plugin-manager-button"
+              onClick={() => setShowPluginManager(true)}
+              icon={<Icon path={mdiPuzzleOutline} size={12} />}
+            >
+              {t('config.pluginManager')}
+            </Button>
+
+            <Button
               className="global-config-button"
               onClick={() => setShowGlobalConfig(true)}
               icon={<Icon path={mdiCog} size={12} />}
@@ -1209,7 +1355,7 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
               <div key={card.id} className="config-card">
                 <div className="card-header">
                   <div className="card-icon">
-                    <Icon path={getCardTypes(t, groups)[card.type]?.icon || DEFAULT_CARD_ICON} size={14} />
+                    <Icon path={getMergedCardTypes(t, groups)[card.type]?.icon || DEFAULT_CARD_ICON} size={14} />
                   </div>
                   <h3 className="card-title">{card.config.title}</h3>
                 </div>
@@ -1239,6 +1385,14 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
                       size="small"
                       checked={card.visible}
                       onChange={() => handleVisibilityChange(card.id)}
+                    />
+                  </div>
+                  <div className="switch-item">
+                    <span>{t('config.showInDrawer')}</span>
+                    <Switch
+                      size="small"
+                      checked={card.inDrawer === true}
+                      onChange={() => handleDrawerChange(card.id)}
                     />
                   </div>
                 </div>
@@ -1271,14 +1425,13 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
           })}
         </div>
 
-      {!isMobile && <BottomInfo />}
       </div>
 
       {showAddModal && (
         <AddCardModal
           onClose={() => setShowAddModal(false)}
           onSelect={handleAddCard}
-          cardTypes={getCardTypes(t, groups)}
+          cardTypes={getMergedCardTypes(t, groups)}
         />
       )}
 
@@ -1290,7 +1443,7 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
           setShowPreview(false);
         }}
         card={editingCard}
-        cardTypes={getCardTypes(t, groups)}
+        cardTypes={getMergedCardTypes(t, groups)}
         onSave={handleSaveEdit}
         showPreview={showPreview}
         setShowPreview={setShowPreview}
@@ -1344,6 +1497,18 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
         onCancel={() => setShowGroupManager(false)}
         groups={groups}
         onSave={handleSaveGroups}
+      />
+
+      {/* 上传插件弹窗 */}
+      <UploadPluginModal
+        open={showUploadPlugin}
+        onClose={() => setShowUploadPlugin(false)}
+      />
+
+      {/* 插件管理弹窗 */}
+      <PluginManagerModal
+        open={showPluginManager}
+        onClose={() => setShowPluginManager(false)}
       />
     </div>
   );

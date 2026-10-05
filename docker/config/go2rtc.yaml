@@ -5,6 +5,12 @@ api:
 rtsp:
     listen: ":5126"
 
+# H.265/HEVC 摄像头需要 ffmpeg 转码成 H.264 才能被浏览器播放。
+# 这里用 PATH 上的 ffmpeg（Dockerfile 里已 apk add ffmpeg），
+# 不要写成绝对路径 —— 不同架构、不同基础镜像路径不一定一样。
+ffmpeg:
+    bin: ffmpeg
+
 webrtc:
     listen: ":5127"
 

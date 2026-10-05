@@ -15,6 +15,10 @@ import Login from './pages/login';
 import InitializePage from './pages/initialize';
 import { systemApi } from './utils/api';
 import Loading from './components/Loading';
+import CardRippleEffect from './components/CardRippleEffect';
+// 插件系统：①先设置 window.HassPanelBridge（必须在加载插件前）；②启动后加载插件
+import './plugin/bridge';
+import { loadPlugins } from './plugin/loader';
 
 // 将需要使用 useNavigate 的逻辑移到单独的组件中
 function MainContent() {
@@ -92,8 +96,15 @@ function MainContent() {
     checkInitStatus();
   }, [checkInitStatus]);
 
+  // 插件是运行时加载的（独立于登录态），应用启动即触发一次即可
+  useEffect(() => {
+    loadPlugins();
+  }, []);
+
   return (
         <LanguageProvider>
+          {/* 卡片水涟漪：中心跟随鼠标（全局只挂一个监听） */}
+          <CardRippleEffect />
           <Routes>
             <Route path="/initialize" element={<InitializePage />} />
             <Route path="/login" element={<Login />} />

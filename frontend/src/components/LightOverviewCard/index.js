@@ -44,6 +44,9 @@ function LightOverviewCard({ config }) {
 
   const lightStates = {
     background: config.background || '',
+    imageSize: config.imageSize || '',
+    imageLeft: config.imageLeft || '',
+    imageTop: config.imageTop || '',
     rooms: lightEntities
   };
 

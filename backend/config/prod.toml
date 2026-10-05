@@ -2,6 +2,7 @@
 name = 'Hass Panel'
 web_port = 5124
 env = "prod"
+notify_token = "hasspanel"
 debug = false
 user_config_dir = "/config/hass-panel/user_configs"
 upload_dir = "/config/hass-panel/upload"

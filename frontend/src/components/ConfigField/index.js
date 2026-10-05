@@ -1,6 +1,6 @@
 import React from 'react';
 import { useHass } from '@hakit/core';
-import { AutoComplete, Input, InputNumber, Button } from 'antd';
+import { AutoComplete, Input, InputNumber, Button, Switch } from 'antd';
 import './style.css';
 import { useLanguage } from '../../i18n/LanguageContext';
 import LightOverviewConfig from './LightOverviewConfig';
@@ -17,6 +17,7 @@ import ClimateFeaturesConfig from './ClimateFeaturesConfig';
 import { configApi } from '../../utils/api';
 import DailyQuoteConfig from './DailyQuoteConfig';
 import WashingMachineConfig from './WashingMachineConfig';
+import MapTrackersConfig from './MapTrackersConfig';
 
 
 function ConfigField({ field, value, onChange }) {
@@ -89,6 +90,21 @@ function ConfigField({ field, value, onChange }) {
               style={{ width: '100%' }}
             />
           </div>
+        </div>
+      );
+
+    case 'switch':
+      return (
+        <div className="config-field">
+          <div className="config-field-row config-field-row-switch">
+            <label>{field.label}</label>
+            <Switch
+              size="small"
+              checked={value === undefined || value === null ? !!field.default : !!value}
+              onChange={(checked) => onChange(checked)}
+            />
+          </div>
+          {field.hint && <div className="config-field-hint">{field.hint}</div>}
         </div>
       );
 
@@ -722,6 +738,9 @@ function ConfigField({ field, value, onChange }) {
 
     case 'quotes-config':
       return <DailyQuoteConfig field={field} value={value} onChange={onChange} />
+
+    case 'map-trackers-config':
+      return <MapTrackersConfig field={field} value={value} onChange={onChange} getFilteredEntities={getFilteredEntities} />
 
     case 'group-select':
       const { groups = [] } = field;

@@ -1,0 +1,290 @@
+/* 顶部中缘悬停下拉面板 */
+
+.top-drawer {
+  position: fixed;
+  top: 0;
+  /* ⚠️ 不能用 transform: translateX(-50%) 来居中：
+     带 transform 的祖先会成为 fixed 子元素的「包含块」，
+     那样面板的 width:100% 解析出来只有这个 160px，而不是整屏宽度。
+     改用 left/right + margin:auto 居中，就不会产生包含块。 */
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: 160px;
+  z-index: 1100;
+}
+
+/* 中上边缘的小把手，平时只占顶部一小条，不影响下方交互 */
+.top-drawer-trigger {
+  /* 热区跟随面板实际中心移动；宽度由全局配置控制。 */
+  position: fixed;
+  top: 0;
+  left: var(--drawer-trigger-center, 50%);
+  transform: translateX(-50%);
+  width: var(--drawer-trigger-width, 160px);
+  height: 22px;
+  padding-top: 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 0;
+}
+
+/* 使用原全屏中间提示条的样式：40×4px、全圆角、中性色和轻微横向呼吸。 */
+.top-drawer-trigger-bar {
+  width: var(--drawer-trigger-bar-width, 40px);
+  max-width: calc(100% - 8px);
+  height: 4px;
+  flex: 0 0 auto;
+  border-radius: 2px;
+  background: var(--drawer-trigger-color, var(--color-text-secondary));
+  opacity: var(--drawer-trigger-opacity, 0.3);
+  transition: filter 0.3s ease;
+  animation: drawer-trigger-bounce 2s infinite;
+}
+
+@keyframes drawer-trigger-bounce {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(1.2); }
+}
+
+.top-drawer-trigger:hover .top-drawer-trigger-bar {
+  filter: brightness(1.25);
+  animation: none;
+}
+
+/* 下拉面板：固定定位，关闭时高度为 0，打开时下拉。
+   尺寸 / 毛玻璃模糊 / 背景透明度 / 左边距都通过 CSS 变量注入。 */
+.top-drawer-panel {
+  position: fixed;
+  z-index: 1; /* 盖在触发热区上，展开后导航仍可点 */
+  top: 0;
+  /* 左边距由配置决定（没配就按当前宽度居中），不再用 transform 居中，
+     这样拖右边缘时是往右长，而不是从中心往两边对称缩放。 */
+  left: var(--drawer-left, 0%);
+  /* 宽高都用百分比：100% = 整屏宽 / 整屏高（面板是 fixed，包含块就是视口） */
+  width: var(--drawer-width, 100%);
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* 下拉面板圆角：顶部贴着屏幕边缘，只把下面两个角倒圆 */
+  border-radius: 0 0 var(--border-radius-large, 16px) var(--border-radius-large, 16px);
+  background: color-mix(in srgb, var(--color-card-bg) calc(var(--drawer-bg-alpha, 0.6) * 100%), transparent);
+  backdrop-filter: blur(var(--drawer-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--drawer-blur, 12px));
+  /* ⚠️ 这里不要加 border-bottom / box-shadow：
+     面板关闭时 height 只有 0，但宽度是整屏，边框和阴影会在屏幕最顶端
+     画出一条贯穿全屏的长线（就是之前那条「长白边」）。只在打开时加阴影。 */
+  transition: height 0.3s ease;
+}
+
+.top-drawer.open .top-drawer-panel {
+  height: var(--drawer-max-height, 85%);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+}
+
+/* ===== 顶部导航条：和下面的卡片分开 ===== */
+.top-drawer-navbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(127, 127, 127, 0.1);
+}
+
+.top-drawer-navbar.editing {
+  background: color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.top-drawer-nav-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+}
+
+/* 关闭/取消始终贴在导航栏最右侧 */
+.top-drawer-nav-close {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.top-drawer-nav-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text-primary);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.top-drawer-nav-btn:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.top-drawer-nav-btn.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* 编辑模式下这行是「拖动整块面板」的把手 */
+.top-drawer-nav-hint {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  cursor: move;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== 卡片区（可滚动） ===== */
+.top-drawer-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.top-drawer-card {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+}
+
+/* BaseCard 默认带 16px 顶部外边距。下拉屏里 BaseCard 已经被 100% 高度的格子包住，
+   再加这段 margin 会让地图等内容的总高度多出 16px，底部溢出卡片框。 */
+.top-drawer-card .base-card {
+  margin-top: 0 !important;
+  min-height: 0;
+}
+
+/* 编辑模式下每张卡片右上角的拖动把手 */
+.top-drawer-card-handle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: move;
+  color: var(--color-text-secondary);
+  background: var(--color-card-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+}
+
+.top-drawer-card-handle:hover {
+  color: var(--color-primary);
+}
+
+/* ===== 编辑模式：面板尺寸手柄 =====
+   默认全透明（不显示那条贯穿底部的白线、也不显示橙色角落块），
+   只在鼠标悬停到边缘/角落时才给一点提示色，既保留拖动改大小功能又去除视觉噪点。 */
+.top-drawer-handle {
+  position: absolute;
+  z-index: 20;
+  background: transparent;
+}
+
+.top-drawer-handle:hover {
+  background: rgba(127, 127, 127, 0.28);
+}
+
+.top-drawer-handle.right {
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.top-drawer-handle.bottom {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.top-drawer-handle.corner {
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  background: transparent;
+  border-radius: 4px 0 var(--border-radius-large, 16px) 0;
+}
+
+.top-drawer-handle.corner:hover {
+  background: var(--color-primary);
+}
+
+/* ===== 卡片外观和主页保持一致 =====
+   主页 style.css 里的 `.react-grid-item > div` 是全局选择器，会给「格子的第一个子元素」
+   刷上玻璃卡片外观（背景 / 边框 / 阴影 / 毛玻璃 / 圆角）。下拉屏的 `.top-drawer-card`
+   正好就是这个元素，所以直接沿用同一套外观，两边卡片就长得一样了。
+   这里只做两件事：① 内边距归零（卡片撑满格子、把手好定位）；② 把里面真正的卡片
+   底色去掉，避免「玻璃底 + 卡片底」叠成两层（就是之前那个「多一层白」）。 */
+.top-drawer-layout .react-grid-item {
+  padding: 0;
+}
+.top-drawer-layout .react-grid-item > div {
+  position: relative; /* 让右下角拉伸把手锚定到卡片本身 */
+  transform: none !important; /* 下拉屏里不要悬停上浮 */
+}
+.top-drawer-layout .react-grid-item > div:hover {
+  transform: none !important;
+}
+/* 玻璃底在外层 .top-drawer-card 上，里面真正的卡片去掉自己的底 / 边框 / 阴影。 */
+.top-drawer-layout .top-drawer-card > :not(.top-drawer-card-handle),
+.top-drawer-layout .top-drawer-card .hp-scaled-stage > * {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 卡片右下角拉伸把手：圆角造型，贴在卡片右下角外侧一点（下拉屏卡片占满格子，
+   所以用负偏移让它刚好落在卡片框外）。 */
+.top-drawer-layout .react-resizable-handle {
+  position: absolute;
+  right: -5px !important;
+  bottom: -5px !important;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  box-sizing: border-box;
+  border: none;
+  border-right: 2px solid var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
+  border-bottom-right-radius: var(--border-radius-medium, 12px);
+  background: none !important;
+  cursor: se-resize;
+  opacity: 0.55;
+  z-index: 6;
+  transition: opacity 0.2s ease;
+}
+
+.top-drawer-layout .react-resizable-handle:hover {
+  opacity: 1;
+}

@@ -39,6 +39,25 @@ class HassConfig(Base):
     created_at = Column(DateTime, default=datetime.now())
     updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
+class NotifyMessage(Base):
+    """webhook 通知消息。
+
+    persist=False（默认）：临时消息，只保留最近 notifyRecentLimit 条；
+    persist=True         ：长期消息，保留最近 notifyHistoryLimit 条。
+    两种都落库，所以重启后仍然看得到。
+    """
+    __tablename__ = "notify_messages"
+
+    id = Column(String, primary_key=True, index=True)  # uuid hex
+    title = Column(String, default="")
+    message = Column(Text, default="")
+    level = Column(String, default="info")
+    format = Column(String, default="text")  # text | markdown
+    persist = Column(Boolean, default=False, index=True)
+    read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=datetime.now(), index=True)
+
+
 class Entity(Base):
     __tablename__ = "entities"
 

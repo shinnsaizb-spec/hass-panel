@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Optional
 from hass_panel.utils.config import cfg
 from hass_panel.utils.singleton import singleton
+from hass_panel.utils.safe_fs import safe_remove
 @singleton
 class FileCache:
     def __init__(self):
@@ -45,4 +46,4 @@ class FileCache:
     def delete(self, key: str):
         cache_path = self._get_cache_path(key)
         if cache_path.exists():
-            os.remove(cache_path) 
+            safe_remove(cache_path)

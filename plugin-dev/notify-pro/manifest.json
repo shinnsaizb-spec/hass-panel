@@ -1,0 +1,33 @@
+{
+  "id": "notify-history-pro",
+  "name": "消息通知（升级版）",
+  "version": "1.0.0",
+  "description": "消息通知卡片的升级修复版：自己设置「翻页最多多少条」，每页显示条数根据卡片高度自动计算，不再手填。",
+  "author": "you",
+  "cardType": "NotifyHistoryCardPro",
+  "icon": "mdiBellRing",
+  "group": "plugin",
+  "entry": "plugin.js",
+  "defaultHeight": 360,
+  "configFields": [
+    { "key": "group", "label": "分组", "type": "group-select", "default": "default" },
+    { "key": "title", "label": "标题", "type": "text", "default": "消息通知" },
+    {
+      "key": "maxTotal",
+      "label": "翻页最多条数",
+      "type": "number",
+      "min": 1,
+      "max": 1000,
+      "step": 1,
+      "default": "100",
+      "hint": "翻页能翻到的最大消息条数（超过的部分不显示）。每页显示多少条会根据卡片高度自动计算，不用手填。"
+    },
+    {
+      "key": "directImage",
+      "label": "图片直连加载",
+      "type": "switch",
+      "default": false,
+      "hint": "关闭时图片经后端代理加载（可鉴权、限大小、防失效）；开启后直接用原始地址加载。"
+    }
+  ]
+}

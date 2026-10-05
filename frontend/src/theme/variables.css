@@ -7,7 +7,16 @@
   --color-background: #FAFAFA;
   --color-card-bg-transparent: rgba(250, 250, 250, 0.5);
   --color-background-curtain-panel: #fff;
-  --color-card-bg: #ffffff;
+  /* 卡片背景拆成「实色 rgb」+「透明度 alpha」，用 rgba() 拼，兼容性比 color-mix 好。
+     透明度默认 1（不透明），主页 .content 下会被 globalConfig.cardOpacity 覆盖。 */
+  --color-card-bg-rgb: 255, 255, 255;
+  --color-card-bg-alpha: 1;
+  --color-card-bg: rgba(var(--color-card-bg-rgb), var(--color-card-bg-alpha));
+  /* 主页卡片主体（.react-grid-item > div，带 backdrop blur）的玻璃透明度。
+     默认 0.6（沿用它原来的观感），全局配置的 cardOpacity 会通过内联样式覆盖。
+     单独拆一个变量是因为 --color-card-bg-alpha 默认是 1（不透明），
+     直接复用会把默认样式从「半透明玻璃」变成「纯不透明」。 */
+  --card-glass-alpha: 0.6;
   --color-text-primary: #263238;
   --color-text-secondary: #546E7A;
   --color-text-light: #78909C;
@@ -45,7 +54,9 @@
   /* 背景色 - 使用更深的黑色以增加对比度 */
   --color-background: #121212;
   --color-card-bg-transparent: rgba(18, 18, 18, 0.5);
-  --color-card-bg: #1E1E1E;
+  /* 深色主题同样拆 rgb + alpha，alpha 继承 :root 的 1，主页再覆盖 */
+  --color-card-bg-rgb: 30, 30, 30;
+  --color-card-bg: rgba(var(--color-card-bg-rgb), var(--color-card-bg-alpha));
   --color-background-curtain-panel: #666;
   
   /* 文本颜色 - 提高对比度 */

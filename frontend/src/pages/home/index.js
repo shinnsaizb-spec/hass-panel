@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 // import { PullToRefresh } from 'antd-mobile';
 import Icon from '@mdi/react';
 import {
@@ -19,37 +19,21 @@ import { Responsive } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { message, Spin, Modal, Slider } from 'antd';
-import WeatherCard from '../../components/WeatherCard';
-import SensorCard from '../../components/SensorCard';
-import TimeCard from '../../components/TimeCard';
-import MediaPlayerCard from '../../components/MediaPlayerCard';
-import LightOverviewCard from '../../components/LightOverviewCard';
-import LightStatusCard from '../../components/LightStatusCard';
-import CameraSection from '../../components/CameraSection';
-import CurtainCard from '../../components/CurtainCard';
-import ElectricityCard from '../../components/ElectricityCard';
-import ClimateCard from '../../components/ClimateCard';
-import RouterCard from '../../components/RouterCard';
-import NASCard from '../../components/NASCard';
-import ScriptPanel from '../../components/ScriptPanel';
-import WaterPurifierCard from '../../components/WaterPurifierCard';
-import IlluminanceCard from '../../components/IlluminanceCard';
-import MotionCard from '../../components/MotionCard';
-import SocketStatusCard from '../../components/SocketStatusCard';
-import MaxPlayerCard from '../../components/MaxPlayerCard';
-import UniversalCard from '../../components/UniversalCard';
-import FamilyCard from '../../components/FamilyCard';
-import ServerCard from '../../components/ServerCard';
-import PVECard from '../../components/PVECard';
-import DailyQuoteCard from '../../components/DailyQuoteCard';
-import WashingMachineCard from '../../components/WashingMachineCard';
-import MapCard from '../../components/MapCard';
+import { getCardComponent } from '../../cards/registry';
+import { getPluginCardHeights } from '../../plugin/loader';
+import ScaledCard from '../../components/ScaledCard';
+import TopDrawer from '../../components/TopDrawer';
+import NotificationPopup from '../../components/NotificationPopup';
 import GroupTabs from '../../components/GroupTabs';
 import './style.css';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { configApi, applyBackgroundToBody } from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 
+
+// 这些卡片内部是「自己按渲染尺寸绘制」的（地图 / 摄像头），
+// 参与内容缩放会画错、溢出卡片框，所以不缩放，直接铺满卡片即可。
+const NO_SCALE_CARD_TYPES = new Set(['MapCard', 'CameraCard']);
 
 function Home({ sidebarVisible, setSidebarVisible }) {
   const { theme, setSpecificTheme } = useTheme();
@@ -61,10 +45,16 @@ function Home({ sidebarVisible, setSidebarVisible }) {
   const [width, setWidth] = useState(window.innerWidth);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [cards, setCards] = useState([]);
+  // 全局配置（用于把抽屉尺寸/毛玻璃、卡片透明度、通知位置等下发给组件）
+  const [globalConfig, setGlobalConfig] = useState({});
   const [loading, setLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  // 默认全屏（桌面端）—— 当壁纸用时不需要顶部工具栏占位置。
+  // 移动端不默认全屏，否则顶部工具栏藏起来后找不到切回来的按钮。
+  const [isFullscreen, setIsFullscreen] = useState(() => window.innerWidth >= 768);
+  // 全屏时工具栏默认隐藏，鼠标移到右上角才浮出来
+  const [toolbarPeek, setToolbarPeek] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const [columnCount, setColumnCount] = useState({ lg: 40, md: 40, sm: 1 });
@@ -171,6 +161,8 @@ function Home({ sidebarVisible, setSidebarVisible }) {
       MapCard: 480,
     };
 
+    // 合并插件卡片的默认高度（运行时加载，按 manifest.defaultHeight）
+    Object.assign(cardHeights, getPluginCardHeights());
 
     // 创建布局对象
     const layouts = {
@@ -277,6 +269,23 @@ function Home({ sidebarVisible, setSidebarVisible }) {
 
     return layouts;
   }, []);
+
+  // 卡片内容缩放用的「默认尺寸」参考：来自 calculateDefaultLayouts（即卡片的设计尺寸）。
+  // 卡片处于默认大小时不缩放，被拖动放大/缩小时内容跟着一起缩放。
+  const defaultSizeMap = useMemo(() => {
+    const visible = cards.filter((c) => c.visible !== false);
+    if (!visible.length) return {};
+    const map = {};
+    try {
+      const def = calculateDefaultLayouts(visible);
+      (def.lg || []).forEach((it) => {
+        map[String(it.i)] = { w: it.w, h: it.h };
+      });
+    } catch (e) {
+      // 拿不到参考尺寸就不缩放
+    }
+    return map;
+  }, [cards, calculateDefaultLayouts]);
 
   // 分组切换处理
   const handleGroupChange = (groupId) => {
@@ -434,6 +443,7 @@ function Home({ sidebarVisible, setSidebarVisible }) {
             ...card,
             visible: card.visible !== false,
             titleVisible: card.titleVisible !== false,
+            inDrawer: card.inDrawer === true,
             group: card.config.group || 'default' // 如果没有分组，默认为 default
           }));
           setCards(updatedCards);
@@ -484,6 +494,7 @@ function Home({ sidebarVisible, setSidebarVisible }) {
 
         if (config.globalConfig) {
           applyBackgroundToBody(config.globalConfig);
+          setGlobalConfig(config.globalConfig || {});
         }
 
 
@@ -757,42 +768,36 @@ function Home({ sidebarVisible, setSidebarVisible }) {
     };
   }, [themeMenuVisible, handleClickOutside]);
 
-  const renderCard = (card) => {
-    // 组件映射表
-    const CardComponents = {
-      'TimeCard': TimeCard,
-      'WeatherCard': WeatherCard,
-      'LightStatusCard': LightStatusCard,
-      'SensorCard': SensorCard,
-      'MediaPlayerCard': MediaPlayerCard,
-      'CurtainCard': CurtainCard,
-      'ElectricityCard': ElectricityCard,
-      'ScriptPanel': ScriptPanel,
-      'WaterPurifierCard': WaterPurifierCard,
-      'IlluminanceCard': IlluminanceCard,
-      'RouterCard': RouterCard,
-      'NASCard': NASCard,
-      'CameraCard': CameraSection,
-      'ClimateCard': ClimateCard,
-      'MotionCard': MotionCard,
-      'LightOverviewCard': LightOverviewCard,
-      'SocketStatusCard': SocketStatusCard,
-      'MaxPlayerCard': MaxPlayerCard,
-      'UniversalCard': UniversalCard,
-      'FamilyCard': FamilyCard,
-      'PVECard': PVECard,
-      'ServerCard': ServerCard,
-      'WashingMachineCard': WashingMachineCard,
-      'DailyQuoteCard': DailyQuoteCard,
-      'MapCard': MapCard,
+  // 全屏模式下工具栏默认隐藏，鼠标移到右上角才浮出来。
+  // Wallpaper Engine 的网页壁纸里鼠标事件是正常工作的，所以壁纸模式下同样有效。
+  useEffect(() => {
+    if (!isFullscreen) {
+      setToolbarPeek(false);
+      return;
+    }
+    const onMove = (e) => {
+      const nearTopRight = e.clientX > window.innerWidth - 240 && e.clientY < 160;
+      setToolbarPeek(nearTopRight);
     };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [isFullscreen]);
 
-    const Component = CardComponents[card.type];
+  // 内容缩放：当前断点下，每个卡片的格子尺寸 / 默认尺寸
+  const activeBp = width > 1200 ? 'lg' : width > 768 ? 'md' : 'sm';
+  const homeItemById = {};
+  (currentLayouts[activeBp] || []).forEach((it) => {
+    homeItemById[String(it.i)] = it;
+  });
+
+  const renderCard = (card) => {
+    // 组件从卡片注册表获取（见 src/cards/registry.js），插件化后无需改这里
+    const Component = getCardComponent(card.type);
     if (!Component) return null;
-    
-    return <Component 
-      key={card.id} 
-      config={{ ...card.config, titleVisible: card.titleVisible }} 
+
+    return <Component
+      key={card.id}
+      config={{ ...card.config, titleVisible: card.titleVisible }}
     />;
   };
 
@@ -857,6 +862,20 @@ function Home({ sidebarVisible, setSidebarVisible }) {
     }
   }, [cards, loading, updateLayoutsForCards]);
 
+  // 卡片相关的外观变量（透明度 / 标题高度 / 标题字号），挂在 .content 上供所有卡片继承
+  const contentStyle = {};
+  if (globalConfig.cardOpacity != null && String(globalConfig.cardOpacity).trim() !== '') {
+    contentStyle['--card-glass-alpha'] = String(globalConfig.cardOpacity).trim();
+    contentStyle['--color-card-bg-alpha'] = String(globalConfig.cardOpacity).trim();
+    contentStyle['--color-card-bg'] = 'rgba(var(--color-card-bg-rgb), var(--color-card-bg-alpha))';
+  }
+  if (globalConfig.cardTitleHeight != null && String(globalConfig.cardTitleHeight).trim() !== '') {
+    contentStyle['--card-title-h'] = `${String(globalConfig.cardTitleHeight).replace('px', '').trim()}px`;
+  }
+  if (globalConfig.cardTitleFontSize != null && String(globalConfig.cardTitleFontSize).trim() !== '') {
+    contentStyle['--card-title-font'] = `${String(globalConfig.cardTitleFontSize).replace('px', '').trim()}px`;
+  }
+
   return (
     <div
       className={`page-container ${!sidebarVisible ? 'sidebar-hidden' : ''} ${isFullscreen ? 'fullscreen' : ''}`}
@@ -865,6 +884,45 @@ function Home({ sidebarVisible, setSidebarVisible }) {
     >
       {/* 添加contextHolder以确保模态对话框使用全局主题 */}
       {contextHolder}
+
+      {/* 顶部中上缘悬停下拉面板：放 inDrawer 卡片 */}
+      <TopDrawer
+        cards={cards.filter(c => c.inDrawer === true && c.visible !== false)}
+        renderCard={renderCard}
+        settings={{
+          drawerWidth: globalConfig.drawerWidth,
+          drawerHeight: globalConfig.drawerHeight,
+          drawerLeft: globalConfig.drawerLeft,
+          drawerTriggerWidth: globalConfig.drawerTriggerWidth,
+          drawerTriggerColor: globalConfig.drawerTriggerColor,
+          drawerTriggerOpacity: globalConfig.drawerTriggerOpacity,
+          drawerLayouts: globalConfig.drawerLayouts,
+          drawerOpacity: globalConfig.drawerOpacity,
+          drawerBlur: globalConfig.drawerBlur,
+          // 卡片玻璃透明度和标题设置：主页 / 下拉屏统一使用同一份全局配置
+          cardOpacity: globalConfig.cardOpacity,
+          cardTitleHeight: globalConfig.cardTitleHeight,
+          cardTitleFontSize: globalConfig.cardTitleFontSize,
+        }}
+      />
+
+      {/* 主页通知弹窗：接收 webhook 推送，位置/大小/时长可在全局配置里调，编辑模式可拖动摆放 */}
+      <NotificationPopup
+        settings={{
+          notifyPosition: globalConfig.notifyPosition,
+          notifyDuration: globalConfig.notifyDuration,
+          notifyWidth: globalConfig.notifyWidth,
+          notifyHeight: globalConfig.notifyHeight,
+          notifyX: globalConfig.notifyX,
+          notifyY: globalConfig.notifyY,
+        }}
+        editable={isEditing}
+        onSavePosition={(x, y) => {
+          configApi
+            .setGlobalConfig({ notifyX: x, notifyY: y })
+            .catch((e) => console.error('[notify] 保存弹窗位置失败:', e));
+        }}
+      />
       
       {/* <PullToRefresh
         onRefresh={handleRefresh}
@@ -873,7 +931,10 @@ function Home({ sidebarVisible, setSidebarVisible }) {
         refreshingText="刷新中..."
         completeText="刷新完成"
       > */}
-      <div className="content">
+      <div
+        className="content"
+        style={Object.keys(contentStyle).length ? contentStyle : undefined}
+      >
         {loading ? (
           <div className="loading-state">
             <Spin size="large" />
@@ -881,7 +942,7 @@ function Home({ sidebarVisible, setSidebarVisible }) {
           </div>
         ) : (
           <>
-            <div className={`header ${isFullscreen ? 'hidden' : ''}`}>
+            <div className={`header ${isFullscreen ? (toolbarPeek ? 'peek' : 'hidden') : ''}`}>
               {/* 分组标签栏 */}
               
             <GroupTabs
@@ -1050,11 +1111,19 @@ function Home({ sidebarVisible, setSidebarVisible }) {
                   // 否则只显示属于当前分组的卡片（如果卡片没有分组属性，默认属于default分组）
                   return (card.group === activeGroup) || (!card.group && activeGroup === 'default');
                 })
-                .map(card => (
-                  <div key={card.id}>
-                    {renderCard(card)}
-                  </div>
-                ))}
+                .map(card => {
+                  const it = homeItemById[String(card.id)];
+                  const def = defaultSizeMap[String(card.id)];
+                  const sx = it && def && def.w ? it.w / def.w : 1;
+                  const sy = it && def && def.h ? it.h / def.h : 1;
+                  return (
+                    <div key={card.id}>
+                      <ScaledCard sx={sx} sy={sy} noScale={NO_SCALE_CARD_TYPES.has(card.type)}>
+                        {renderCard(card)}
+                      </ScaledCard>
+                    </div>
+                  );
+                })}
             </Responsive>
 
             {/* 添加保存按钮 */}
