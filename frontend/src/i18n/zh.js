@@ -86,6 +86,21 @@ export const zh = {
       hintDraw: '按住左键拖一个框 = 一个房间 · 右键拖动平移 · 滚轮缩放',
       hintSelect: '点选房间后可拖动 / 拉角缩放 · 右键拖动平移 · 滚轮缩放',
     },
+    // HA 连接设置（初始化之后改 HA 地址 / 令牌）
+    haConfig: {
+      title: 'HA 连接',
+      url: 'Home Assistant 地址',
+      urlPlaceholder: 'http://192.168.1.10:8123',
+      urlHint: '填容器能访问到的地址。容器用的是 host 网络，所以直接写 HA 的局域网 IP 即可，不要写 localhost。',
+      token: '访问令牌',
+      tokenPlaceholder: '粘贴 HA 的长期访问令牌',
+      tokenHint: '建议用「长期访问令牌」：HA 里点右下角你的用户名 → 安全 → 长期访问令牌 → 创建令牌。用短期令牌会在一段时间后失效，导致摄像头定格画面、用电统计等接口报 401。',
+      validateTip: '保存时后端会先校验令牌是否有效 —— 无效会直接报错、不会保存。所以「保存」就等于「测试连接」。',
+      required: 'HA 地址和访问令牌都要填',
+      saved: 'HA 连接已更新',
+      saveFailed: '保存失败',
+      loadFailed: '读取当前 HA 配置失败',
+    },
     config: {
     memoryCard: {
       ram: '内存',

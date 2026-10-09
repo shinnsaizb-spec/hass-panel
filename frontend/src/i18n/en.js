@@ -85,6 +85,21 @@ export const en = {
       hintDraw: 'Drag to draw a room · right-drag to pan · scroll to zoom',
       hintSelect: 'Click a room to move/resize · right-drag to pan · scroll to zoom',
     },
+    // Home Assistant connection settings
+    haConfig: {
+      title: 'HA connection',
+      url: 'Home Assistant URL',
+      urlPlaceholder: 'http://192.168.1.10:8123',
+      urlHint: 'Use an address the container can reach. The container uses host networking, so the LAN IP of HA works — do not use localhost.',
+      token: 'Access token',
+      tokenPlaceholder: 'Paste your HA long-lived access token',
+      tokenHint: 'Prefer a long-lived access token (HA: your profile → Security → Long-lived access tokens → Create). Short-lived tokens expire and then camera snapshots / energy statistics start returning 401.',
+      validateTip: 'The backend validates the token before saving — an invalid token is rejected and nothing is written. So saving doubles as a connection test.',
+      required: 'Both the URL and the token are required',
+      saved: 'HA connection updated',
+      saveFailed: 'Failed to save',
+      loadFailed: 'Failed to read the current HA config',
+    },
     config: {
     // RAM / VRAM card
     memoryCard: {

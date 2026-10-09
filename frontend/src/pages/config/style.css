@@ -206,6 +206,7 @@
 /* 「全局配置」用的是白底描边样式；其余几个入口按钮（上传插件 / 卡片管理 / 管理分组 /
    配置管理下拉）统一成完全一样的颜色与悬停效果，避免有的实心、有的描边。 */
 .header-buttons .global-config-button,
+.header-buttons .ha-config-button,
 .header-buttons .upload-plugin-button,
 .header-buttons .card-manager-button,
 .header-buttons .attachment-manager-button,
@@ -220,6 +221,7 @@
 }
 
 .header-buttons .global-config-button:hover,
+.header-buttons .ha-config-button:hover,
 .header-buttons .upload-plugin-button:hover,
 .header-buttons .card-manager-button:hover,
 .header-buttons .attachment-manager-button:hover,

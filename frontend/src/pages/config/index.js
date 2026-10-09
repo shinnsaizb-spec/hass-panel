@@ -29,6 +29,7 @@ import {
   mdiPencil,
   mdiArrowLeft,
   mdiCog,
+  mdiLanConnect,
   mdiPowerSocket,
   mdiAccountGroup,
   mdiServer,
@@ -64,6 +65,7 @@ import VersionListModal from '../../components/VersionList';
 import GroupManager from '../../components/GroupManager';
 import UploadPluginModal from '../../components/UploadPluginModal';
 import CardManagerModal from '../../components/CardManagerModal';
+import HaConfigModal from '../../components/HaConfigModal';
 import AttachmentManagerModal from '../../components/AttachmentManagerModal';
 
 // 添加默认图标常量
@@ -1072,6 +1074,7 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showUploadPlugin, setShowUploadPlugin] = useState(false);
   const [showCardManager, setShowCardManager] = useState(false);
+  const [showHaConfig, setShowHaConfig] = useState(false);
   const [showAttachmentManager, setShowAttachmentManager] = useState(false);
   const [loading, setLoading] = useState(true);
   // 插件是运行时加载的，加载完成后广播事件；这里监听以触发重渲染，让插件卡片出现在列表里
@@ -1530,6 +1533,14 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
             </Button>
 
             <Button
+              className="ha-config-button"
+              onClick={() => setShowHaConfig(true)}
+              icon={<Icon path={mdiLanConnect} size={12} />}
+            >
+              {t('haConfig.title')}
+            </Button>
+
+            <Button
               className="global-config-button"
               onClick={() => setShowGlobalConfig(true)}
               icon={<Icon path={mdiCog} size={12} />}
@@ -1743,6 +1754,9 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
           />
         </>
       )}
+
+      {/* HA 连接设置：改 HA 地址 / 访问令牌（初始化之后想改就靠这个入口） */}
+      <HaConfigModal visible={showHaConfig} onClose={() => setShowHaConfig(false)} />
 
       {/* 分组管理弹窗 */}
       <GroupManager

@@ -1,0 +1,45 @@
+/* ==========================================================================
+   HA 连接设置弹窗
+   ========================================================================== */
+
+.ha-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 2px 2px;
+}
+
+.ha-config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ha-config-field > label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.ha-config-hint {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* 底部说明块：提示保存时会校验令牌 */
+.ha-config-tip {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.08));
+}
+
+.ha-config-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
