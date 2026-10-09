@@ -1,20 +1,94 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { useEntity } from '@hakit/core';
 import Modal from '../Modal';
 import LightControl from './LightControl';
+import CardSlotPopup from './CardSlotPopup';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { iconSizeCss, normalizeIconSize } from '../../utils/iconSize';
+import { configApi } from '../../utils/api';
+
+// 视为「开启」的状态值（不同 domain 叫法不同）
+const ON_STATES = ['on', 'open', 'home', 'playing', 'active', 'detected', 'cleaning', 'heat', 'cool'];
+
+// ------------------------------------------------------------------------------
+// 「卡片位」按钮
+// ------------------------------------------------------------------------------
+// · 绑定了卡片 → 点一下弹出那张卡片
+// · 没绑定卡片 → 点一下直接开关绑定的传感器
+// · 图标按绑定传感器的状态在「运行时图标 / 停止时图标」之间切换（图片，支持 GIF）
+// ------------------------------------------------------------------------------
+function CardSlotButton({ slot, onOpenCard }) {
+  const ent = useEntity(slot.entityId || 'unknown', { returnNullIfNotFound: true });
+  const isOn = !!ent && ON_STATES.includes(ent.state);
+  // 绑了传感器 → 按状态在「运行时 / 停止时图标」之间切换；没绑 → 用默认图标
+  const img = slot.entityId ? (isOn ? slot.imageOn : slot.imageOff) : slot.image;
+  const px = normalizeIconSize(slot.size, 30);
+
+  const handleClick = () => {
+    if (slot.cardId) {
+      onOpenCard(slot);
+      return;
+    }
+    // 没绑卡片 → 只操作传感器开关
+    if (ent && ent.service && typeof ent.service.toggle === 'function') {
+      ent.service.toggle();
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      // has-image：用自定义图片时去掉圆形外框，直接按图标大小显示图片
+      className={`card-slot-button ${isOn ? 'is-on' : ''} ${img ? 'has-image' : ''}`}
+      style={{
+        left: slot.position?.left || '50%',
+        top: slot.position?.top || '50%',
+        width: `calc(${px}px * 1.25)`,
+        height: `calc(${px}px * 1.25)`,
+      }}
+      onClick={handleClick}
+      title={slot.name}
+    >
+      {img ? (
+        <img src={img} alt="" className="card-slot-img" draggable={false} />
+      ) : (
+        <Icon icon={slot.icon || 'mdi:card-outline'} width={px} />
+      )}
+    </button>
+  );
+}
 
 function FloorPlan({ lights }) {
   const { t } = useLanguage();
   const [showControl, setShowControl] = useState(false);
   const [selectedLight, setSelectedLight] = useState(null);
+  // 弹出的卡片位浮层：{ slot, def }
+  const [popup, setPopup] = useState(null);
+  const [allCards, setAllCards] = useState([]);
   const pressTimer = useRef(null);
+
+  // 拉一次用户的卡片列表，供「卡片位」弹出对应卡片
+  useEffect(() => {
+    let alive = true;
+    configApi
+      .getConfig()
+      .then((res) => {
+        if (alive) setAllCards((res && res.data && res.data.cards) || []);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // 确保 lights 和必要的属性存在
   if (!lights || !lights.background || !lights.rooms) {
     console.warn('FloorPlan: Missing required props');
     return null;
   }
+
+  const cardSlots = Array.isArray(lights.cards) ? lights.cards : [];
 
   const isLightEntity = (entityId) => {
     return entityId?.startsWith('light.');
@@ -29,37 +103,33 @@ function FloorPlan({ lights }) {
     return `${s}%`;
   };
 
-  // 图片尺寸（背景图 + 灯光效果一起缩放）是卡片级配置，
-  // 留空则沿用原来的默认值 110%。图标尺寸仍是每个房间单独可调。
   const imageSize = toPercent(lights.imageSize, 110);
-
-  // 图片位置（背景图 + 灯光效果整体移动）也是卡片级配置，
-  // 留空沿用默认 -5%（和原来背景偏移一致）。这样灯光图永远跟着背景一起挪。
   const imageLeft = toPercent(lights.imageLeft, -5);
   const imageTop = toPercent(lights.imageTop, -5);
 
   const handlePressStart = (light) => {
-    // 只有 light 类型的实体才支持长按
     if (!isLightEntity(light.entity?.entity_id)) return;
-
     pressTimer.current = setTimeout(() => {
       setSelectedLight(light);
       setShowControl(true);
-    }, 500); // 500ms 长按触发
+    }, 500);
   };
 
   const handlePressEnd = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-    }
+    if (pressTimer.current) clearTimeout(pressTimer.current);
   };
 
   const handleTouchStart = (light, e) => {
-    // 只有 light 类型的实体才阻止默认事件
     if (isLightEntity(light.entity?.entity_id)) {
       e.preventDefault();
       handlePressStart(light);
     }
+  };
+
+  /** 点「卡片位」→ 找到绑定的卡片并弹出 */
+  const openSlotCard = (slot) => {
+    const def = allCards.find((c) => String(c.id) === String(slot.cardId)) || null;
+    setPopup({ slot, def });
   };
 
   return (
@@ -75,12 +145,8 @@ function FloorPlan({ lights }) {
 
         const isLight = isLightEntity(light.entity?.entity_id);
 
-        // 图标尺寸是每个房间单独可调的（配置里留空则用默认 24rem）。
-        // 单位写什么取决于你想怎么缩放：项目整体走 rem 自适应，
-        // 所以默认用 rem；想固定大小就写 px。
-        // 图片尺寸 / 位置（imageSize / imageLeft / imageTop）都是卡片级、
-        // 背景与灯光效果共用，见组件顶部。
-        const iconSize = light.iconSize || '24rem';
+        // 图标尺寸每个房间单独可调，单位统一为 px（用户在配置里只填数字）。
+        const iconSize = iconSizeCss(light.iconSize);
 
         return (
           <React.Fragment key={light.entity?.entity_id}>
@@ -95,8 +161,6 @@ function FloorPlan({ lights }) {
               style={{
                 position: 'absolute',
                 ...light.position,
-                // 按钮跟着图标走，维持原来的 24:30（1:1.25）比例，
-                // 否则图标调大后会溢出圆形按钮
                 width: `calc(${iconSize} * 1.25)`,
                 height: `calc(${iconSize} * 1.25)`,
               }}
@@ -118,6 +182,16 @@ function FloorPlan({ lights }) {
         );
       })}
 
+      {/* 「卡片位」：绑了卡片就弹卡片，没绑就开关传感器 */}
+      {cardSlots.map((slot, i) => (
+        <CardSlotButton
+          key={`${slot.entityId || 'x'}::${slot.cardId || 'x'}::${i}`}
+          slot={slot}
+          onOpenCard={openSlotCard}
+        />
+      ))}
+
+      {/* 长按灯光 → 灯光控制 */}
       <Modal
         visible={showControl}
         onClose={() => setShowControl(false)}
@@ -131,8 +205,18 @@ function FloorPlan({ lights }) {
           />
         )}
       </Modal>
+
+      {/* 点卡片位 → 弹出绑定的卡片（位置 / 大小在「布局编辑」里拖出来） */}
+      {popup ? (
+        <CardSlotPopup
+          slot={popup.slot}
+          cardDef={popup.def}
+          editable={false}
+          onClose={() => setPopup(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
-export default FloorPlan; 
+export default FloorPlan;

@@ -288,3 +288,42 @@
 .top-drawer-layout .react-resizable-handle:hover {
   opacity: 1;
 }
+
+/* ===== 分组切换（从主页顶栏移进导航栏）=====
+   GroupTabs 原本是给主页顶栏做的（float:left、底部下划线、较大内边距），
+   放进导航栏这个 flex 行里要覆盖掉，否则会错位/把导航栏撑高。 */
+.top-drawer-navbar .group-tabs-container {
+  float: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0 6px;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* 导航栏本身已有 border-bottom，这里不要再叠一条下划线 */
+.top-drawer-navbar .group-tabs {
+  border-bottom: none;
+}
+
+.top-drawer-navbar .group-tab {
+  padding: 3px 10px;
+  font-size: 13px;
+}
+
+.top-drawer-navbar .group-scroll-arrow {
+  width: 22px;
+}
+
+/* 当前分组没有下拉屏卡片时的占位提示（导航栏仍在，方便切回去） */
+.top-drawer-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 80px;
+  padding: 24px 16px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
+}

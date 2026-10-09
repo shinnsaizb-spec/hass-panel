@@ -203,7 +203,14 @@
   gap: 4px;
 }
 
-.header-buttons .global-config-button {
+/* 「全局配置」用的是白底描边样式；其余几个入口按钮（上传插件 / 卡片管理 / 管理分组 /
+   配置管理下拉）统一成完全一样的颜色与悬停效果，避免有的实心、有的描边。 */
+.header-buttons .global-config-button,
+.header-buttons .upload-plugin-button,
+.header-buttons .card-manager-button,
+.header-buttons .attachment-manager-button,
+.header-buttons .group-manager-button,
+.header-buttons .config-menu-button {
   background: var(--color-background) !important;
   border: 1px solid var(--color-border) !important;
   color: var(--color-text-primary) !important;
@@ -213,6 +220,11 @@
 }
 
 .header-buttons .global-config-button:hover,
+.header-buttons .upload-plugin-button:hover,
+.header-buttons .card-manager-button:hover,
+.header-buttons .attachment-manager-button:hover,
+.header-buttons .group-manager-button:hover,
+.header-buttons .config-menu-button:hover,
 .header-buttons .back-button:hover {
   background: var(--color-background-secondary) !important;
   border-color: var(--color-primary) !important;
@@ -601,46 +613,8 @@
   text-align: right;
 }
 
-.preview-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 400px;
-  height: 500px;
-  background: var(--color-card-bg);
-  border-radius: var(--border-radius-medium);
-  box-shadow: 0 4px 12px var(--color-shadow);
-  z-index: 10000000;
-  overflow: hidden;
-}
-
-.preview-container.visible {
-  display: block;
-}
-
-.close-preview {
-  position: absolute;
-  top: 20px;
-  right: 12px;
-  padding: 6px;
-  border: none;
-  border-radius: var(--border-radius-small);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
-
-.preview-container .light-overview-card {
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  padding: 20px;
-}
+/* 灯光概览的布局编辑器现在直接嵌在「编辑卡片」表单里（见 components/LightOverviewEditor/），
+   原来那个右上角的 .preview-container 浮层已移除。 */
 
 .header-left {
   display: flex;

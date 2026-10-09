@@ -106,6 +106,13 @@
     margin-top: 4px;
   }
 
+  .global-config-webm-hint {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin: 2px 0 16px;
+    padding-left: 2px;
+  }
+
   .global-config-form-item .hint.webhook-error {
     color: var(--color-error);
     font-weight: 500;
@@ -338,3 +345,165 @@
     border: 1px solid var(--color-border);
   }
   
+/* ===== 卡片风格：右侧常驻预览 =====
+   预览卡的外观完全复用 liquid-glass.css 里真实卡片那一套
+   （选择器是 `.react-grid-item > div, .lg-preview-card`），
+   所以这里只负责位置 / 尺寸 / 文字，不重复写背景 / 边框 / 模糊。 */
+/* 预览「独立小窗」：贴在全局配置弹窗右边（点风格才弹出来，不是常驻）。
+   弹窗是 fixed 居中、最大 480px，所以它的右边缘固定在 50% + 240px。 */
+.lg-preview-window {
+  position: fixed;
+  left: calc(50% + 256px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 300px;
+  z-index: 1002; /* 比弹窗(1001)/遮罩(1000)高，才看得见 */
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lg-preview-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.lg-preview-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+  color: var(--color-text-secondary);
+  border-radius: 6px;
+}
+
+.lg-preview-close:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+/* 屏幕不够宽就贴到右下角，别跑到屏幕外 */
+@media (max-width: 1000px) {
+  .lg-preview-window {
+    left: auto;
+    right: 16px;
+    top: auto;
+    bottom: 16px;
+    transform: none;
+    width: 264px;
+  }
+}
+
+.lg-preview {
+  position: relative;
+  height: 264px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+/* 预览卡的「背后」：彩色 + 斜条纹，磨砂 / 折射才看得出来 */
+.lg-preview-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(38deg, rgba(0, 0, 0, 0.55) 0 3px, transparent 3px 26px),
+    radial-gradient(circle at 22% 26%, #ff8a5c 0%, transparent 46%),
+    radial-gradient(circle at 78% 30%, #4ecdc4 0%, transparent 44%),
+    radial-gradient(circle at 50% 88%, #7b6cff 0%, transparent 52%),
+    linear-gradient(135deg, #1b2340, #3a2b52 60%, #12233a);
+}
+
+.lg-preview-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 208px;
+  height: 132px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.lg-preview-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* 卡片风格分区里，风格按钮和「该风格的参数」之间的分隔线 */
+.lg-style-divider {
+  height: 1px;
+  margin: 14px 0 4px;
+  background: var(--color-border);
+}
+
+/* ===== 卡片风格：点击切换的按钮组 ===== */
+.lg-style-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 4px 0 10px;
+}
+
+.lg-style-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  font: inherit;
+  font-family: inherit;
+}
+
+.lg-style-option:hover {
+  border-color: var(--color-primary);
+}
+
+.lg-style-option.active {
+  border-color: var(--color-primary);
+  background: rgba(255, 183, 77, 0.12);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.lg-style-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.lg-style-option.active .lg-style-name {
+  color: var(--color-primary-dark, #ffa726);
+}
+
+/* 描述文字要能换行，否则按钮会被撑得很宽、把两列挤成一行一个 */
+.lg-style-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}

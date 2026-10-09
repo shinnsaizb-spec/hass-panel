@@ -15,7 +15,6 @@ import Login from './pages/login';
 import InitializePage from './pages/initialize';
 import { systemApi } from './utils/api';
 import Loading from './components/Loading';
-import CardRippleEffect from './components/CardRippleEffect';
 // 插件系统：①先设置 window.HassPanelBridge（必须在加载插件前）；②启动后加载插件
 import './plugin/bridge';
 import { loadPlugins } from './plugin/loader';
@@ -59,7 +58,23 @@ function MainContent() {
 
   const updateHassConfig = async () => {
     try {
-      const hassToken = JSON.parse(localStorage.getItem('hassTokens'));
+      // ⚠️ 只有在后端「还没有」HA 令牌时才回写，绝不能每次都覆盖。
+      //
+      // 原因：这里拿到的是 hakit 的 OAuth 令牌（localStorage 的 hassTokens），
+      // 它是**短期令牌（约 30 分钟过期）**。而用户在后端填的通常是**长期访问令牌**。
+      // 原来每次面板连上 HA 都拿短期令牌把数据库里的长期令牌覆盖掉，后果是：
+      //   ① 半小时后，所有「后端直连 HA」的接口（摄像头定格画面、用电统计…）全部 401；
+      //   ② 面板重启时数据库里那个令牌已经失效 → hakit 连不上 HA → 卡片全空、
+      //      摄像头一直转圈，只能重新授权，非常难受。
+      // 所以：数据库里已经有令牌就原样保留，只在首次（空库）时用它兜底。
+      const current = await systemApi.getHassConfig();
+      if (current && current.data && current.data.token) return;
+
+      const raw = localStorage.getItem('hassTokens');
+      if (!raw) return;
+      const hassToken = JSON.parse(raw);
+      if (!hassToken || !hassToken.access_token) return;
+
       await systemApi.updateHassConfig({
         hass_url: hassToken.hassUrl,
         hass_token: hassToken.access_token
@@ -103,8 +118,6 @@ function MainContent() {
 
   return (
         <LanguageProvider>
-          {/* 卡片水涟漪：中心跟随鼠标（全局只挂一个监听） */}
-          <CardRippleEffect />
           <Routes>
             <Route path="/initialize" element={<InitializePage />} />
             <Route path="/login" element={<Login />} />

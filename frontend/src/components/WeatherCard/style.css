@@ -107,3 +107,213 @@
   font-size: 0.9em;
   line-height: 1.4;
 } 
+
+/* ==========================================================================
+   天气卡片：两种新增风格
+   ========================================================================== */
+
+/* ---------- 风格二：时钟风（严格照参考图的比例） ----------
+   字号层级：时间 = 月日星期 × 2.3
+             定位 = 月日星期 × 0.85（小半号）
+             单独温度 = 月日星期 × 1.5
+   下半区高度分配：温度 60%、最低最高+描述 35%，中间留空。 */
+.wc-clock {
+  --wc-base: 15px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* 上下左右都要有边距 */
+  padding: 14px 16px;
+  gap: 3px;
+}
+
+.wc-clock-time {
+  font-size: calc(var(--wc-base) * 2.3);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.wc-clock-date {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: var(--wc-base);
+}
+
+.wc-clock-weekday {
+  color: var(--color-text-secondary);
+}
+
+.wc-clock-loc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  font-size: calc(var(--wc-base) * 0.85);
+  color: var(--color-text-secondary);
+}
+
+.wc-clock-bottom {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.wc-clock-icon {
+  flex: 0 0 auto;
+  display: flex;
+  color: #f5b301;
+}
+
+.wc-clock-right {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 单独温度：占 60% 高度 */
+.wc-clock-temp {
+  flex: 0 0 60%;
+  display: flex;
+  align-items: center;
+  font-size: calc(var(--wc-base) * 1.5);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 最低最高 + 天气描述：占 35% 高度 */
+.wc-clock-sub {
+  flex: 0 0 35%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: calc(var(--wc-base) * 0.85);
+  color: var(--color-text-secondary);
+}
+
+.wc-clock-range {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 风格三：预报风 ---------- */
+.wc-fc {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto !important;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.wc-fc-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wc-fc-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.wc-fc-updated {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.wc-fc-unit {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+/* 逐小时 */
+.wc-fc-hours {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wc-fc-hour {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.wc-fc-hlabel {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.wc-fc-hicon {
+  display: flex;
+  color: #f5b301;
+}
+
+.wc-fc-htemp {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 四个指标块 */
+.wc-fc-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.wc-fc-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.08));
+  min-width: 0;
+}
+
+.wc-fc-tile-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.wc-fc-tile-value {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.wc-fc-tile-extra {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  white-space: nowrap;
+}

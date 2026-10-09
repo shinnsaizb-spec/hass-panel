@@ -1,0 +1,98 @@
+/* ==========================================================================
+   硬件占用行（硬盘 / 内存 / 显存共用）
+   ========================================================================== */
+
+.hbr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hbr-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+.hbr-icon-img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.hbr-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* 第一行：名称 + 百分比 …… 温度（最右） */
+.hbr-line1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hbr-name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hbr-pct {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hbr-temp {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+/* 第二行：已用 / 可用 */
+.hbr-line2 {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hbr-sep {
+  opacity: 0.55;
+  margin: 0 1px;
+}
+
+/* 第三行：占比条（>=90% 会从橙变红） */
+.hbr-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(127, 127, 127, 0.22);
+  overflow: hidden;
+}
+
+.hbr-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease, background 0.3s ease;
+}

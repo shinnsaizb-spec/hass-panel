@@ -1,0 +1,67 @@
+/* ==========================================================================
+   户型图 3D 视图
+   ========================================================================== */
+
+.fp3d-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  overflow: hidden;
+}
+
+.fp3d-host {
+  position: absolute;
+  inset: 0;
+}
+
+/* three.js 画布：透明底，让卡片的玻璃背景透出来 */
+.fp3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.fp3d-canvas:active {
+  cursor: grabbing;
+}
+
+/* 右上角视角按钮 */
+.fp3d-toolbar {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
+.fp3d-toolbar button {
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.8));
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.fp3d-toolbar button:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 空态 */
+.fp3d-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  pointer-events: none;
+}

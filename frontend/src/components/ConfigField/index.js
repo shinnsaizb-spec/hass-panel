@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useHass } from '@hakit/core';
-import { AutoComplete, Input, InputNumber, Button, Switch } from 'antd';
+import { AutoComplete, Input, InputNumber, Button, Switch, Select } from 'antd';
 import './style.css';
 import { useLanguage } from '../../i18n/LanguageContext';
-import LightOverviewConfig from './LightOverviewConfig';
+import AttachmentManagerModal from '../AttachmentManagerModal';
+import LightOverviewEditor from '../LightOverviewEditor';
+import LightScenesConfig from './LightScenesConfig';
 import LightsConfig from './LightsConfig';
 import SocketConfig from './SocketConfig';
 import NasConfig from './NasConfig';
@@ -18,9 +20,12 @@ import { configApi } from '../../utils/api';
 import DailyQuoteConfig from './DailyQuoteConfig';
 import WashingMachineConfig from './WashingMachineConfig';
 import MapTrackersConfig from './MapTrackersConfig';
+import { DiskListConfig, BatteryListConfig } from './HardwareConfig';
+import Icon from '@mdi/react';
+import { mdiChevronDown, mdiChevronUp } from '@mdi/js';
 
 
-function ConfigField({ field, value, onChange }) {
+function ConfigField({ field, value, onChange, config, onPatch }) {
   const { getAllEntities } = useHass();
   const allEntities = getAllEntities();
   const { t } = useLanguage();
@@ -34,31 +39,10 @@ function ConfigField({ field, value, onChange }) {
       }));
   };
 
-  // 处理房间灯光配置的变更
-  const handleLightOverviewChange = (index, key, newValue) => {
-    const newRooms = [...value];
-    if (!newRooms[index]) {
-      newRooms[index] = {};
-    }
-    newRooms[index][key] = newValue;
-    onChange(newRooms);
-  };
-
-  // {t('configField.addButton')}新的房间灯光
-  const handleAddRoom = () => {
-    onChange([...value, {
-      name: '',
-      entity_id: '',
-      position: { top: '50%', left: '50%' },
-      image: ''
-    }]);
-  };
-
-  // {t('configField.deleteButton')}房间灯光
-  const handleDeleteRoom = (index) => {
-    const newRooms = value.filter((_, i) => i !== index);
-    onChange(newRooms);
-  };
+  // 哪个字段正在打开「附件选择」（存 field.key，null 表示没开）
+  const [pickerKey, setPickerKey] = useState(null);
+  // 「折叠分组」字段的展开状态（存 field.key）
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   switch (field.type) {
     case 'text':
@@ -143,6 +127,27 @@ function ConfigField({ field, value, onChange }) {
               />
             </div>
           </div>
+
+          {/* 也可以直接从「附件管理」里挑一个已经上传过的文件 */}
+          <div className="config-field-row config-field-row-actions">
+            <Button size="small" onClick={() => setPickerKey(field.key)}>
+              {t('fields.pickAttachment')}
+            </Button>
+            {value ? (
+              <Button size="small" danger onClick={() => onChange('')}>
+                {t('fields.clearImage')}
+              </Button>
+            ) : null}
+          </div>
+
+          <AttachmentManagerModal
+            open={pickerKey === field.key}
+            onClose={() => setPickerKey(null)}
+            onPick={(it) => {
+              onChange(it.url);
+              setPickerKey(null);
+            }}
+          />
         </div>
       );
 
@@ -172,14 +177,17 @@ function ConfigField({ field, value, onChange }) {
         </div>
       );
 
-    case 'light-overview-config':
-      return <LightOverviewConfig
+    case 'light-overview-editor':
+      // 灯光概览的布局编辑器：一个控件同时管 background / imageSize /
+      // imageLeft / imageTop / rooms 多个字段，所以走 config + onPatch 而不是 value/onChange
+      return <LightOverviewEditor config={config} onPatch={onPatch} />
+
+    case 'light-scenes-config':
+      return <LightScenesConfig
         field={field}
         value={value}
-        handleLightOverviewChange={handleLightOverviewChange}
-        getFilteredEntities={getFilteredEntities}
-        handleDeleteRoom={handleDeleteRoom}
-        handleAddRoom={handleAddRoom} />
+        onChange={onChange}
+        getFilteredEntities={getFilteredEntities} />
 
     case 'entity-multiple':
       const availableEntities = getFilteredEntities(field.filter);
@@ -766,6 +774,66 @@ function ConfigField({ field, value, onChange }) {
           </div>
         </div>
       );
+
+    // ===== 下拉选择（取值是固定枚举，如「指标放右侧 / 下方」）=====
+    case 'select':
+      return (
+        <div className="config-field">
+          <div className="config-field-row">
+            <label>{field.label}</label>
+            <Select
+              value={value === undefined || value === null || value === '' ? field.default : value}
+              onChange={onChange}
+              style={{ width: '100%' }}
+              options={(field.options || []).map((o) => ({ value: o.value, label: o.label }))}
+            />
+          </div>
+          {field.hint && <div className="config-field-hint">{field.hint}</div>}
+        </div>
+      );
+
+    // ===== 折叠分组：里面是一组子字段（CPU 设置 / GPU 设置 这种）=====
+    // 子字段的 key 直接落在卡片 config 上（扁平），所以用 config + onPatch 读写，
+    // 而不是用 value —— value 只有当前这一层字段自己的值。
+    case 'field-group': {
+      const groupOpen = !!expandedGroups[field.key];
+      return (
+        <div className="config-field hw-group">
+          <button
+            type="button"
+            className="hw-group-title"
+            onClick={() =>
+              setExpandedGroups((m) => ({ ...m, [field.key]: !m[field.key] }))
+            }
+          >
+            <span>{field.label}</span>
+            <Icon path={groupOpen ? mdiChevronUp : mdiChevronDown} size={16} />
+          </button>
+          {groupOpen && (
+            <div className="hw-group-body">
+              {(field.fields || []).map((sub) => (
+                <ConfigField
+                  key={sub.key}
+                  field={sub}
+                  value={(config || {})[sub.key]}
+                  onChange={(v) => onPatch && onPatch({ [sub.key]: v })}
+                  config={config}
+                  onPatch={onPatch}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ===== 硬盘列表：一块盘一组（名称 / 图标 / 已用 / 可用 / 温度）=====
+    case 'disk-list':
+      return <DiskListConfig field={field} value={value} onChange={onChange} />;
+
+    // ===== 设备电量列表：一台设备一组（名称 / 图标 / 电量 / 充电状态）=====
+    case 'battery-list':
+      return <BatteryListConfig field={field} value={value} onChange={onChange} />;
 
     default:
       return null;

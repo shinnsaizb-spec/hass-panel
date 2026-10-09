@@ -13,10 +13,15 @@ import './style.css';
  *
  * sx / sy = 当前尺寸 / 默认尺寸。
  */
-function ScaledCard({ sx = 1, sy = 1, noScale = false, children, className, style }) {
+function ScaledCard({ sx = 1, sy = 1, noScale = false, scaleLock = null, children, className, style }) {
   const safeSx = Number.isFinite(sx) && sx > 0.01 ? sx : 1;
   const safeSy = Number.isFinite(sy) && sy > 0.01 ? sy : 1;
-  const s = Math.sqrt(safeSx * safeSy);
+  const auto = Math.sqrt(safeSx * safeSy);
+  // scaleLock：锁定「当时那一刻」的缩放比。
+  // 典型用法：先把卡片拉到想要的文字大小，再按锁 → 之后不管怎么拉伸，内容都保持这个大小。
+  // 不传 / 不是有效数字 = 没锁，走默认的自适应缩放。
+  const locked = Number.isFinite(scaleLock) && scaleLock > 0.01 ? scaleLock : null;
+  const s = locked != null ? locked : auto;
 
   // noScale：像地图 / 摄像头这种「按自己渲染尺寸自绘」的卡片不做缩放，
   // 让内容自己铺满卡片即可（否则地图会被 transform 影响、画到卡片外面）。

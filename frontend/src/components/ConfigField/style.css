@@ -800,3 +800,184 @@
   flex: 0 0 auto;
 }
 
+
+/* ==========================================================================
+   灯光概览：情景开关配置
+   ========================================================================== */
+
+.light-scenes-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scene-item {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+}
+
+.scene-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 情景开关：整块默认折叠 */
+.light-scenes-collapse {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+}
+
+.light-scenes-collapse .ant-collapse-header {
+  padding: 10px 4px !important;
+}
+
+.scene-collapse-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* 情景开关：整块默认折叠 */
+.light-scenes-collapse {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+}
+
+.light-scenes-collapse .ant-collapse-header {
+  padding: 10px 4px !important;
+}
+
+.scene-collapse-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* 图片字段下面那排按钮（从附件选择 / 清除） */
+.config-field-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 图片字段下面那排按钮（从附件选择 / 清除） */
+.config-field-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ===== 硬件类卡片的配置控件 ===== */
+
+/* 折叠分组（CPU 设置 / GPU 设置） */
+.hw-group {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.hw-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.08));
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.hw-group-title:hover {
+  background: var(--color-border);
+}
+
+.hw-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+/* 一组一组（硬盘 / 设备） */
+.hw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.hw-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.06));
+}
+
+.hw-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hw-item-index {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.hw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.hw-field-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* 下拉里带图标的选项 */
+.hw-icon-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 图标选择器：预设 + 自定义图片（上传 / 从附件选） */
+.hw-icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hw-icon-custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hw-icon-preview {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.12));
+}

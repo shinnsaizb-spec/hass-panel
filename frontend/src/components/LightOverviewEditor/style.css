@@ -1,0 +1,354 @@
+/* ==========================================================================
+   智能概览（原「灯光概览」）：布局编辑器
+   --------------------------------------------------------------------------
+   布局：左图 + 右设置面板。
+   ⚠️ 编辑区必须和真实卡片一样是「正方形」（卡片里 .floor-plan 有 aspect-ratio:1），
+      否则百分比定位在拖拽时会变形、拖出来的位置和实际显示对不上。
+   ========================================================================== */
+
+.loe-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------------- 左图 + 右面板 ---------------- */
+.loe-main {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.loe-area {
+  position: relative;
+  flex: 0 0 380px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px dashed var(--color-border, rgba(127, 127, 127, 0.3));
+  border-radius: var(--border-radius-medium, 12px);
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.08));
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.loe-side {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.loe-side-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 180px;
+  padding: 24px 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--border-radius-small);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 窄屏（配置弹窗在手机上）改成上下布局 */
+@media (max-width: 720px) {
+  .loe-main {
+    flex-direction: column;
+  }
+
+  .loe-area {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .loe-side {
+    width: 100%;
+  }
+}
+
+/* 背景图：点它 = 选中它；拖它 = 整张图（含灯光效果图）移动 */
+.loe-bg {
+  position: absolute;
+  object-fit: contain;
+  cursor: grab;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.loe-bg:active {
+  cursor: grabbing;
+}
+
+.loe-bg.is-selected {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 灯光按钮 / 卡片位按钮：点它 = 选中；拖它 = 改位置 */
+.loe-light-btn {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.6));
+  color: var(--color-text-secondary);
+  box-shadow: 0 2px 4px var(--color-shadow, rgba(0, 0, 0, 0.25));
+  cursor: grab;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  touch-action: none;
+}
+
+.loe-light-btn:active {
+  cursor: grabbing;
+}
+
+.loe-light-btn.is-selected {
+  box-shadow: 0 0 0 3px var(--color-primary), 0 2px 4px var(--color-shadow, rgba(0, 0, 0, 0.25));
+  color: var(--color-primary);
+}
+
+/* 卡片位用虚线边框区分于灯光 */
+.loe-card-slot {
+  border: 1px dashed var(--color-primary);
+  z-index: 2;
+}
+
+/* 没背景图时的提示 + 上传 */
+.loe-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------------- 通用小按钮（也用于包 file input） ---------------- */
+.loe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.loe-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.loe-btn-sm {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.loe-btn-primary {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ---------------- 工具栏 ---------------- */
+.loe-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.loe-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.loe-hint {
+  flex: 1 1 200px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+/* ---------------- 设置面板 ---------------- */
+.loe-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+  background: var(--color-background);
+}
+
+.loe-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.loe-panel-sub {
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.15));
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.loe-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.loe-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loe-label {
+  flex: 0 0 auto;
+  min-width: 58px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.loe-range {
+  flex: 1 1 auto;
+  min-width: 0;
+  accent-color: var(--color-primary);
+}
+
+.loe-value {
+  flex: 0 0 auto;
+  min-width: 48px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.loe-pos {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* 文件（灯光效果图）：文件名 + 上传/清除按钮 */
+.loe-file {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.loe-file-name {
+  flex: 1 1 100px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   防止实体名 / 卡片名太长把设置框撑破
+   --------------------------------------------------------------------------
+   .loe-row 是 flex 布局，里面的 antd Select / Input 必须允许收缩（min-width:0）
+   并自己处理省略号，否则长实体名会溢出容器。
+   ========================================================================== */
+
+.loe-row > .ant-select,
+.loe-row > .ant-select-auto-complete,
+.loe-row > .ant-input,
+.loe-row > .ant-input-affix-wrapper,
+.loe-row > .loe-file {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto !important;
+}
+
+.loe-row .ant-select-selection-item,
+.loe-row .ant-select-selection-placeholder,
+.loe-row .ant-select-selection-search-input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 多选（标签会换行撑高）也要能收敛 */
+.loe-row .ant-select-multiple .ant-select-selection-overflow {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.loe-panel {
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   卡片位用了自定义图片（含 GIF）时：去掉圆形外框，直接按图标大小显示图片
+   ========================================================================== */
+
+.loe-light-btn.has-image {
+  background: none;
+  box-shadow: none;
+  border: none;
+}
+
+.loe-slot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 图标下拉里的选项：左边图标 + 右边文字 */
+.loe-icon-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 图标下拉里的选项：左边图标 + 右边文字 */
+.loe-icon-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

@@ -1,52 +1,42 @@
 import React from 'react';
 import { Modal, Button, Space, message } from 'antd';
 import Icon from '@mdi/react';
-import { mdiClose, mdiCheck } from '@mdi/js';
+import { mdiCheck } from '@mdi/js';
 import ConfigField from '../ConfigField';
 import { useLanguage } from '../../i18n/LanguageContext';
-import LightOverviewCard from '../LightOverviewCard';
 import './style.css';
-function EditCardModal({ 
-  visible, 
-  onClose, 
-  card, 
-  cardTypes, 
-  onSave,
-  showPreview,
-  setShowPreview,
-  previewConfig,
-  setPreviewConfig
-}) {
+
+// ==============================================================================
+// 编辑卡片弹窗
+// ------------------------------------------------------------------------------
+// 某些字段（如灯光概览的布局编辑器）一个控件要同时改多个配置项，
+// 所以除了 value/onChange，还额外透传 config（读全部）和 onPatch（批量写）。
+// ==============================================================================
+
+function EditCardModal({ visible, onClose, card, cardTypes, onSave }) {
   const { t } = useLanguage();
   const [config, setConfig] = React.useState(card?.config || {});
 
   React.useEffect(() => {
     if (card) {
       setConfig(card.config);
-      if (card.type === 'LightOverviewCard') {
-        setPreviewConfig(card.config);
-        // setShowPreview(true);
-      }
     }
-  }, [card, setPreviewConfig, setShowPreview]);
+  }, [card]);
 
   const handleConfigChange = (key, value) => {
-    const newConfig = {
-      ...config,
-      [key]: value
-    };
-    setConfig(newConfig);
-    if (card?.type === 'LightOverviewCard') {
-      setPreviewConfig(newConfig);
-    }
-   
+    setConfig((c) => ({ ...c, [key]: value }));
+  };
+
+  /** 一次更新多个字段（灯光布局编辑器用） */
+  const handlePatch = (patch) => {
+    setConfig((c) => ({ ...c, ...patch }));
   };
 
   const handleSave = () => {
     if (card.type === 'CameraCard') {
       const cameras = config.cameras;
       let hasError = false;
-      
+
       cameras.forEach(camera => {
         if (camera.stream_url?.startsWith('onvif://') && camera.url_type === 'auto' && (!camera.onvif_username || !camera.onvif_password)) {
           message.error(t('configField.onvifCredentialsRequired'));
@@ -58,7 +48,7 @@ function EditCardModal({
         return;
       }
     }
-    
+
     onSave({
       ...card,
       config
@@ -68,7 +58,6 @@ function EditCardModal({
   };
 
   const handleClose = () => {
-    setShowPreview(false);
     onClose();
   };
 
@@ -78,22 +67,13 @@ function EditCardModal({
 
   const footer = (
     <Space>
-      {card.type === 'LightOverviewCard' && (
-        <Button 
-          onClick={() => setShowPreview(true)}
-          style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
-        >
-          {t('config.preview')}
-        </Button>
-      )}
-
-      <Button 
+      <Button
         onClick={handleClose}
         style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
       >
         {t('config.cancel')}
       </Button>
-      <Button 
+      <Button
         type="primary"
         icon={<Icon path={mdiCheck} size={12} />}
         onClick={handleSave}
@@ -105,42 +85,27 @@ function EditCardModal({
   );
 
   return (
-    <>
-      <Modal
-        title={`${t('config.edit')} ${cardType.name}`}
-        open={visible}
-        onCancel={handleClose}
-        footer={footer}
-        width={800}
-      >
-        <div className="edit-card-content">
-          {cardType.fields.map(field => (
-            <ConfigField
-              key={field.key}
-              field={field}
-              value={config[field.key]}
-              onChange={(value) => handleConfigChange(field.key, value)}
-            />
-          ))}
-        </div>
-      </Modal>
-
-      {card.type === 'LightOverviewCard' && showPreview && (
-        <div className={`preview-container ${showPreview ? 'visible' : ''}`}>
-          <button
-            className="close-preview"
-            onClick={() => setShowPreview(false)}
-          >
-            <Icon path={mdiClose} size={14} />
-          </button>
-          <LightOverviewCard
-            key={JSON.stringify(previewConfig)}
-            config={previewConfig}
+    <Modal
+      title={`${t('config.edit')} ${cardType.name}`}
+      open={visible}
+      onCancel={handleClose}
+      footer={footer}
+      width={800}
+    >
+      <div className="edit-card-content">
+        {cardType.fields.map(field => (
+          <ConfigField
+            key={field.key}
+            field={field}
+            value={config[field.key]}
+            onChange={(value) => handleConfigChange(field.key, value)}
+            config={config}
+            onPatch={handlePatch}
           />
-        </div>
-      )}
-    </>
+        ))}
+      </div>
+    </Modal>
   );
 }
 
-export default EditCardModal; 
+export default EditCardModal;

@@ -1,6 +1,13 @@
 api:
     listen: ":5125"
     base_path: "/go2rtc"
+    # 允许任意来源的 WebSocket / CORS 请求。
+    # 摄像头卡片用的是 go2rtc 自带的 stream.html，经反代访问时浏览器带的是
+    # 面板的真实地址作为 Origin；go2rtc 默认只认「Origin host == Host 头」，
+    # 跨域时会被拒（日志里 websocket: request origin not allowed by Upgrader.CheckOrigin），
+    # 画面一直卡 loading。设成 * 后 WS 源校验直接放行，反代 / 不同端口 / https 访问都能出画面。
+    # 注意：go2rtc 的 origin 只有 "" 和 "*" 两种有效值，写具体网址反而会一律拒绝。
+    origin: "*"
 
 rtsp:
     listen: ":5126"

@@ -1,0 +1,228 @@
+/* ==========================================================================
+   电脑监控卡片
+   --------------------------------------------------------------------------
+   ⚠️ `.base-card .pcm-body` 用了 `!important`：主页全局有
+      `.base-card > div:not(.card-header) { overflow: visible }`（优先级更高），
+      不加 !important 的话卡片内部滚动会失效、内容直接溢出卡片。
+   ========================================================================== */
+
+.base-card .pcm-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto !important;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+.pcm-device {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
+.pcm-section {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pcm-block {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.08));
+}
+
+/* ---------- 环形进度 ---------- */
+.pcm-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 66px;
+  height: 66px;
+}
+
+.pcm-ring svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pcm-ring-bg {
+  fill: none;
+  stroke: rgba(127, 127, 127, 0.22);
+  stroke-width: 9;
+}
+
+.pcm-ring-fg {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease, stroke 0.3s ease;
+}
+
+.pcm-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pcm-ring-pct {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pcm-ring-cap {
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- 指标行（温度 / 功耗） ---------- */
+.pcm-metrics {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pcm-metric {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.pcm-metric-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--color-text-secondary);
+}
+
+.pcm-metric-label {
+  color: var(--color-text-secondary);
+  flex: 0 0 auto;
+}
+
+.pcm-metric-value {
+  margin-left: auto;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 进度条行（内存 / 显存 / 硬盘） ---------- */
+.pcm-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.pcm-bar-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.pcm-bar-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--color-text-secondary);
+}
+
+.pcm-bar-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pcm-bar-pct {
+  margin-left: auto;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pcm-bar-track {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.2);
+  overflow: hidden;
+}
+
+.pcm-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease, background 0.3s ease;
+}
+
+.pcm-bar-sub {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 其它 ---------- */
+.pcm-group-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.pcm-disk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pcm-divider {
+  height: 1px;
+  background: var(--color-border, rgba(127, 127, 127, 0.2));
+}
+
+.pcm-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.pcm-empty-hint {
+  font-size: 12px;
+}

@@ -37,12 +37,20 @@ import {
   mdiHelpCircle,
   mdiViewDashboard,
   mdiMapMarkerRadius,
-  mdiBellRing,
   mdiUpload,
-  mdiPuzzleOutline,
+  mdiCardsOutline,
+  mdiFolderImage,
+  mdiDesktopTowerMonitor,
+  mdiChip,
+  mdiExpansionCard,
+  mdiMemory,
+  mdiHarddisk,
+  mdiBatteryOutline,
+  mdiWeb,
 } from '@mdi/js';
 import * as mdiIcons from '@mdi/js';
-import { getPluginCardCatalog } from '../../plugin/loader';
+import { getPluginCardCatalog, getCardNameOverrides, getCardDisabled } from '../../plugin/loader';
+import { resolveCardDisplayName } from '../../utils/cardTranslation';
 import AddCardModal from '../../components/AddCardModal';
 import EditCardModal from '../../components/EditCardModal';
 // import Modal from '../../components/Modal';
@@ -55,7 +63,8 @@ import './style.css';
 import VersionListModal from '../../components/VersionList';
 import GroupManager from '../../components/GroupManager';
 import UploadPluginModal from '../../components/UploadPluginModal';
-import PluginManagerModal from '../../components/PluginManagerModal';
+import CardManagerModal from '../../components/CardManagerModal';
+import AttachmentManagerModal from '../../components/AttachmentManagerModal';
 
 // 添加默认图标常量
 const DEFAULT_CARD_ICON = mdiHelpCircle;
@@ -96,6 +105,19 @@ const getCardTypes = (t, groups = []) => ({
     name: t('cards.weather'),
     icon: mdiWeatherPartlyCloudy,
     fields: [
+      {
+        key: 'style',
+        label: t('fields.weatherStyle'),
+        type: 'select',
+        default: 'default',
+        options: [
+          { value: 'default', label: t('fields.weatherStyleDefault') },
+          { value: 'clock', label: t('fields.weatherStyleClock') },
+          { value: 'forecast', label: t('fields.weatherStyleForecast') }
+        ]
+      },
+      { key: 'location', label: t('fields.weatherLocation'), type: 'text', default: '' },
+
       {
         key: 'group',
         label: t('groups.selectGroup'),
@@ -345,6 +367,39 @@ const getCardTypes = (t, groups = []) => ({
       }
     ]
   },
+  IFrameCard: {
+    name: t('cards.iframe'),
+    icon: mdiWeb,
+    fields: [
+      {
+        key: 'url',
+        label: t('fields.iframeUrl'),
+        type: 'text',
+        placeholder: 'https://example.com',
+        default: ''
+      },
+      {
+        key: 'title',
+        label: t('fields.title'),
+        type: 'text',
+        default: t('cardTitles.iframe')
+      },
+      {
+        key: 'scroll',
+        label: t('fields.iframeScroll'),
+        type: 'switch',
+        default: true,
+        hint: t('fields.iframeScrollHint')
+      },
+      {
+        key: 'group',
+        label: t('groups.selectGroup'),
+        type: 'group-select',
+        groups: groups,
+        default: 'default'
+      }
+    ]
+  },
   CurtainCard: {
     name: t('cards.curtain'),
     icon: mdiCurtains,
@@ -568,37 +623,14 @@ const getCardTypes = (t, groups = []) => ({
         default: t('cardTitles.lightOverview')
       },
       {
-        key: 'background',
-        label: t('fields.background'),
-        type: 'image',
-        placeholder: t('fields.placeholderImage'),
-        default: ''
+        key: 'layout',
+        label: t('fields.lightLayout'),
+        type: 'light-overview-editor'
       },
       {
-        key: 'imageSize',
-        label: t('fields.imageSize'),
-        type: 'text',
-        placeholder: t('fields.placeholderImageSize'),
-        default: ''
-      },
-      {
-        key: 'imageLeft',
-        label: t('fields.imageLeft'),
-        type: 'text',
-        placeholder: t('fields.placeholderImageLeft'),
-        default: ''
-      },
-      {
-        key: 'imageTop',
-        label: t('fields.imageTop'),
-        type: 'text',
-        placeholder: t('fields.placeholderImageTop'),
-        default: ''
-      },
-      {
-        key: 'rooms',
-        label: t('fields.roomsConfig'),
-        type: 'light-overview-config',
+        key: 'scenes',
+        label: t('fields.lightScenes'),
+        type: 'light-scenes-config',
         default: []
       }
     ]
@@ -762,9 +794,10 @@ const getCardTypes = (t, groups = []) => ({
       }
     ]
   },
-  NotifyHistoryCard: {
-    name: t('cards.notify'),
-    icon: mdiBellRing,
+  // 内置的 NotifyHistoryCard（旧版消息通知）已移除，消息通知用插件版（NotifyHistoryCardPro）
+  PcMonitorCard: {
+    name: t('cards.pcMonitor'),
+    icon: mdiDesktopTowerMonitor,
     fields: [
       {
         key: 'group',
@@ -777,24 +810,208 @@ const getCardTypes = (t, groups = []) => ({
         key: 'title',
         label: t('fields.title'),
         type: 'text',
-        default: t('cardTitles.notify')
+        default: t('cardTitles.pcMonitor')
       },
       {
-        key: 'maxItems',
-        label: t('fields.notifyMaxItems'),
-        type: 'number',
-        min: 1,
-        max: 200,
-        step: 1,
-        default: '20',
-        hint: t('fields.notifyMaxItemsHint')
+        key: 'deviceName',
+        label: t('fields.pcDeviceName'),
+        type: 'text',
+        default: ''
       },
       {
-        key: 'directImage',
-        label: t('fields.notifyDirectImage'),
+        key: 'cpuUsage',
+        label: t('fields.pcCpuUsage'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'cpuTemp',
+        label: t('fields.pcCpuTemp'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'cpuPower',
+        label: t('fields.pcCpuPower'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'gpuUsage',
+        label: t('fields.pcGpuUsage'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'gpuTemp',
+        label: t('fields.pcGpuTemp'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'gpuPower',
+        label: t('fields.pcGpuPower'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'memUsed',
+        label: t('fields.pcMemUsed'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'memFree',
+        label: t('fields.pcMemFree'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'memTotal',
+        label: t('fields.pcMemTotal'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'vramUsed',
+        label: t('fields.pcVramUsed'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'vramFree',
+        label: t('fields.pcVramFree'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'vramTotal',
+        label: t('fields.pcVramTotal'),
+        type: 'entity',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'diskUsedEntities',
+        label: t('fields.pcDiskUsed'),
+        type: 'entity-multiple',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'diskFreeEntities',
+        label: t('fields.pcDiskFree'),
+        type: 'entity-multiple',
+        filter: 'sensor.*'
+      },
+      {
+        key: 'sizeUnit',
+        label: t('fields.pcSizeUnit'),
+        type: 'text',
+        default: 'GB'
+      }
+    ]
+  },
+  // ===== CPU / GPU：一张卡里同时显示 CPU 和 GPU，设置分两个下拉 =====
+  CpuGpuCard: {
+    name: t('cards.cpuGpuCard'),
+    icon: mdiChip,
+    fields: [
+      { key: 'group', label: t('groups.selectGroup'), type: 'group-select', groups: groups, default: 'default' },
+      { key: 'title', label: t('fields.title'), type: 'text', default: t('cardTitles.cpuGpuCard') },
+      {
+        key: 'metricsLayout',
+        label: t('fields.metricsLayout'),
+        type: 'select',
+        default: 'right',
+        options: [
+          { value: 'right', label: t('fields.metricsRight') },
+          { value: 'bottom', label: t('fields.metricsBottom') }
+        ]
+      },
+      {
+        key: 'cpuGroup',
+        label: t('hwConfig.cpuGroup'),
+        type: 'field-group',
+        fields: [
+          { key: 'cpuName', label: t('fields.hwDeviceName'), type: 'text', default: '' },
+          { key: 'cpuUsage', label: t('fields.hwUsage'), type: 'entity', filter: 'sensor.*' },
+          { key: 'cpuTemp', label: t('fields.hwTemp'), type: 'entity', filter: 'sensor.*' },
+          { key: 'cpuFreq', label: t('fields.hwFreq'), type: 'entity', filter: 'sensor.*' },
+          { key: 'cpuVoltage', label: t('fields.hwVoltage'), type: 'entity', filter: 'sensor.*' },
+          { key: 'cpuPower', label: t('fields.hwPower'), type: 'entity', filter: 'sensor.*' }
+        ]
+      },
+      {
+        key: 'gpuGroup',
+        label: t('hwConfig.gpuGroup'),
+        type: 'field-group',
+        fields: [
+          { key: 'gpuName', label: t('fields.hwDeviceName'), type: 'text', default: '' },
+          { key: 'gpuUsage', label: t('fields.hwUsage'), type: 'entity', filter: 'sensor.*' },
+          { key: 'gpuTemp', label: t('fields.hwTemp'), type: 'entity', filter: 'sensor.*' },
+          { key: 'gpuFreq', label: t('fields.hwFreq'), type: 'entity', filter: 'sensor.*' },
+          { key: 'gpuVoltage', label: t('fields.hwVoltage'), type: 'entity', filter: 'sensor.*' },
+          { key: 'gpuPower', label: t('fields.hwPower'), type: 'entity', filter: 'sensor.*' }
+        ]
+      }
+    ]
+  },
+  // ===== 硬盘：一块盘一组（名称 / 图标 / 已用 / 可用 / 温度）=====
+  DiskCard: {
+    name: t('cards.diskCard'),
+    icon: mdiHarddisk,
+    fields: [
+      { key: 'group', label: t('groups.selectGroup'), type: 'group-select', groups: groups, default: 'default' },
+      { key: 'title', label: t('fields.title'), type: 'text', default: t('cardTitles.diskCard') },
+      { key: 'disks', label: t('hwConfig.disks'), type: 'disk-list' },
+      { key: 'sizeUnit', label: t('fields.pcSizeUnit'), type: 'text', default: 'GB' }
+    ]
+  },
+  // ===== 内存 / 显存：合并成一张卡，两组设置各自折叠 =====
+  MemoryCard: {
+    name: t('cards.memoryCard'),
+    icon: mdiMemory,
+    fields: [
+      { key: 'group', label: t('groups.selectGroup'), type: 'group-select', groups: groups, default: 'default' },
+      { key: 'title', label: t('fields.title'), type: 'text', default: t('cardTitles.memoryCard') },
+      {
+        key: 'memGroup',
+        label: t('hwConfig.memGroup'),
+        type: 'field-group',
+        fields: [
+          { key: 'memName', label: t('fields.nameLabel'), type: 'text', default: '' },
+          { key: 'memUsed', label: t('fields.memUsedGeneric'), type: 'entity', filter: 'sensor.*' },
+          { key: 'memFree', label: t('fields.memFreeGeneric'), type: 'entity', filter: 'sensor.*' },
+          { key: 'memTemp', label: t('fields.memTemp'), type: 'entity', filter: 'sensor.*' }
+        ]
+      },
+      {
+        key: 'vramGroup',
+        label: t('hwConfig.vramGroup'),
+        type: 'field-group',
+        fields: [
+          { key: 'vramName', label: t('fields.nameLabel'), type: 'text', default: '' },
+          { key: 'vramUsed', label: t('fields.memUsedGeneric'), type: 'entity', filter: 'sensor.*' },
+          { key: 'vramFree', label: t('fields.memFreeGeneric'), type: 'entity', filter: 'sensor.*' },
+          { key: 'vramTemp', label: t('fields.memTemp'), type: 'entity', filter: 'sensor.*' }
+        ]
+      },
+      { key: 'sizeUnit', label: t('fields.pcSizeUnit'), type: 'text', default: 'GB' }
+    ]
+  },
+  // ===== 设备电量：一台设备一组（名称 / 图标 / 电量 / 充电状态）=====
+  BatteryCard: {
+    name: t('cards.batteryCard'),
+    icon: mdiBatteryOutline,
+    fields: [
+      { key: 'group', label: t('groups.selectGroup'), type: 'group-select', groups: groups, default: 'default' },
+      { key: 'title', label: t('fields.title'), type: 'text', default: t('cardTitles.batteryCard') },
+      { key: 'devices', label: t('hwConfig.devices'), type: 'battery-list' },
+      {
+        key: 'computeCharge',
+        label: t('fields.battCompute'),
         type: 'switch',
-        default: false,
-        hint: t('fields.notifyDirectImageHint')
+        default: true,
+        hint: t('fields.battComputeHint')
       }
     ]
   }
@@ -804,6 +1021,19 @@ const getCardTypes = (t, groups = []) => ({
 // 插件图标是 @mdi/js 的图标名字符串（如 "mdiBellRing"），这里解析成真实路径。
 function getMergedCardTypes(t, groups = []) {
   const types = getCardTypes(t, groups);
+  // 用户在「卡片管理 → 卡片显示名」里设的覆盖名（内置 / 插件卡片通用）
+  const overrides = getCardNameOverrides();
+  // 被禁用的卡片类型（禁用后不出现在「添加卡片」列表；已放置的实例显示为占位）
+  const disabled = getCardDisabled();
+
+  // 内置卡片：显示名沿用 cardTitles（与旧版一致），有覆盖名时用覆盖名
+  Object.entries(types).forEach(([type, def]) => {
+    // defaultName = 没被覆盖时的名字（给「恢复默认」当占位提示用）
+    def.defaultName = resolveCardDisplayName(type, t, def.name, {});
+    def.name = resolveCardDisplayName(type, t, def.name, overrides);
+    def.disabled = disabled.has(type);
+  });
+
   getPluginCardCatalog().forEach((c) => {
     const rawFields =
       c.configFields && c.configFields.length
@@ -822,10 +1052,13 @@ function getMergedCardTypes(t, groups = []) {
       f.type === 'group-select' && !f.groups ? { ...f, groups } : f
     );
     types[c.cardType] = {
-      name: c.name,
+      // 插件卡片显示名来自 manifest（可被「插件管理」重命名），有覆盖名时用覆盖名
+      name: resolveCardDisplayName(c.cardType, t, c.name, overrides),
+      defaultName: resolveCardDisplayName(c.cardType, t, c.name, {}),
       icon: mdiIcons[c.icon] || DEFAULT_CARD_ICON,
       fields,
       plugin: true,
+      disabled: disabled.has(c.cardType),
     };
   });
   return types;
@@ -835,12 +1068,11 @@ function getMergedCardTypes(t, groups = []) {
 function ConfigPage({ sidebarVisible, setSidebarVisible }) {
   const fileInputRef = useRef(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewConfig, setPreviewConfig] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showUploadPlugin, setShowUploadPlugin] = useState(false);
-  const [showPluginManager, setShowPluginManager] = useState(false);
+  const [showCardManager, setShowCardManager] = useState(false);
+  const [showAttachmentManager, setShowAttachmentManager] = useState(false);
   const [loading, setLoading] = useState(true);
   // 插件是运行时加载的，加载完成后广播事件；这里监听以触发重渲染，让插件卡片出现在列表里
   const [, setPluginTick] = useState(0);
@@ -895,16 +1127,37 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
     loadConfig();
   }, []); // 移除 t 依赖，因为它不需要在这里触发重新加载
 
+  // 「全局配置」弹窗保存 / 实时预览时广播 → 同步刷新本页的 globalConfig，
+  // 免得本页后面保存卡片时把它覆盖回旧值（详见 handleSave 里的说明）。
+  useEffect(() => {
+    const onGlobalConfigChanged = (e) => {
+      const next = e && e.detail;
+      if (next && typeof next === 'object') setGlobalConfig(next);
+    };
+    window.addEventListener('hasspanel:global-config-changed', onGlobalConfigChanged);
+    return () => window.removeEventListener('hasspanel:global-config-changed', onGlobalConfigChanged);
+  }, []);
+
 
 
   // 修改保存函数
   const handleSave = async () => {
     try {
       message.loading(t('config.saving'));
-      // 保存卡片配置和分组配置到后端
+      // ⚠️ 用「服务端最新的 globalConfig」做底，只覆盖 groups。
+      //    不能用本组件 state 里的 globalConfig：它是页面加载时读的，用户在「全局配置」弹窗里
+      //    改的卡片透明度 / 毛玻璃 / 标题等它并不知道；直接整份写回会把那些设置**覆盖回旧值**
+      //    （症状：设好的透明度，回主页刷新后又变回去）。
+      let latestGlobal = globalConfig || {};
+      try {
+        const resp = await configApi.getConfig();
+        if (resp && resp.data && resp.data.globalConfig) latestGlobal = resp.data.globalConfig;
+      } catch (e) {
+        /* 取不到就退回本地值，至少不崩 */
+      }
       await configApi.saveConfig({
         globalConfig: {
-          ...globalConfig,
+          ...latestGlobal,
           groups: groups
         },
         cards,
@@ -1083,9 +1336,6 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
   // 添加编辑卡片的处理函数
   const handleEditCard = (card) => {
     setEditingCard(card);
-    if (card.type === 'LightOverviewCard') {
-      setPreviewConfig(card.config);
-    }
     setShowEditModal(true);
   };
 
@@ -1264,11 +1514,19 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
             </Button>
 
             <Button
-              className="plugin-manager-button"
-              onClick={() => setShowPluginManager(true)}
-              icon={<Icon path={mdiPuzzleOutline} size={12} />}
+              className="card-manager-button"
+              onClick={() => setShowCardManager(true)}
+              icon={<Icon path={mdiCardsOutline} size={12} />}
             >
-              {t('config.pluginManager')}
+              {t('config.cardManager')}
+            </Button>
+
+            <Button
+              className="attachment-manager-button"
+              onClick={() => setShowAttachmentManager(true)}
+              icon={<Icon path={mdiFolderImage} size={12} />}
+            >
+              {t('config.attachmentManager')}
             </Button>
 
             <Button
@@ -1303,7 +1561,7 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
             />
 
             <Dropdown menu={{ items: configMenuItems }} placement="bottomLeft">
-              <Button>
+              <Button className="config-menu-button">
                 {t('config.title')}
                 <Icon path={mdiImport} size={12} style={{ marginLeft: 8 }} />
               </Button>
@@ -1440,15 +1698,10 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
         onClose={() => {
           setShowEditModal(false);
           setEditingCard(null);
-          setShowPreview(false);
         }}
         card={editingCard}
         cardTypes={getMergedCardTypes(t, groups)}
         onSave={handleSaveEdit}
-        showPreview={showPreview}
-        setShowPreview={setShowPreview}
-        previewConfig={previewConfig}
-        setPreviewConfig={setPreviewConfig}
       />
 
       <VersionListModal
@@ -1505,10 +1758,17 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
         onClose={() => setShowUploadPlugin(false)}
       />
 
-      {/* 插件管理弹窗 */}
-      <PluginManagerModal
-        open={showPluginManager}
-        onClose={() => setShowPluginManager(false)}
+      {/* 卡片管理弹窗（基础卡片 + 插件卡片） */}
+      <CardManagerModal
+        open={showCardManager}
+        onClose={() => setShowCardManager(false)}
+        cardTypes={getMergedCardTypes(t, groups)}
+      />
+
+      {/* 附件管理弹窗（图标 / 图片 / 动图） */}
+      <AttachmentManagerModal
+        open={showAttachmentManager}
+        onClose={() => setShowAttachmentManager(false)}
       />
     </div>
   );

@@ -27,7 +27,14 @@ import PVECard from '../components/PVECard';
 import DailyQuoteCard from '../components/DailyQuoteCard';
 import WashingMachineCard from '../components/WashingMachineCard';
 import MapCard from '../components/MapCard';
-import NotifyHistoryCard from '../components/NotifyHistoryCard';
+import PcMonitorCard from '../components/PcMonitorCard';
+import CpuGpuCard from '../components/CpuGpuCard';
+import DiskCard from '../components/DiskCard';
+import BatteryCard from '../components/BatteryCard';
+import MemoryCard from '../components/MemoryCard';
+import IFrameCard from '../components/IFrameCard';
+// 注意：内置的 NotifyHistoryCard（旧版消息通知）已移除，
+// 消息通知请用插件版（plugin-dev/notify-pro，cardType = NotifyHistoryCardPro）。
 
 // 类型名与组件名不一致的情况在这里显式指定（如 CameraCard 对应 CameraSection）
 const builtinCards = {
@@ -55,7 +62,12 @@ const builtinCards = {
   DailyQuoteCard,
   WashingMachineCard,
   MapCard,
-  NotifyHistoryCard,
+  PcMonitorCard,
+  CpuGpuCard,
+  DiskCard,
+  BatteryCard,
+  MemoryCard,
+  IFrameCard,
   CameraCard: CameraSection,
 };
 

@@ -3,6 +3,7 @@ import { mdiHomeFloorG } from '@mdi/js';
 import { useLanguage } from '../../i18n/LanguageContext';
 import BaseCard from '../BaseCard';
 import FloorPlan from './FloorPlan';
+import SceneBar from './SceneBar';
 import './style.css';
 import { useEntity } from '@hakit/core';
 import { notification } from 'antd';
@@ -47,14 +48,23 @@ function LightOverviewCard({ config }) {
     imageSize: config.imageSize || '',
     imageLeft: config.imageLeft || '',
     imageTop: config.imageTop || '',
-    rooms: lightEntities
+    rooms: lightEntities,
+    // 「卡片位」：点一下弹出绑定的那张卡片
+    cards: Array.isArray(config.cards) ? config.cards : []
   };
+
+  // 情景开关：只保留「有名字 + 至少一个实体」的
+  const scenes = (Array.isArray(config.scenes) ? config.scenes : []).filter(
+    (s) => s && s.name && Array.isArray(s.entities) && s.entities.length > 0
+  );
 
   return (
     <BaseCard
+      className="light-overview-smart"
       title={config.title || t('cardTitles.lightOverview')}
       icon={mdiHomeFloorG}
       titleVisible={config.titleVisible}
+      headerRight={scenes.length > 0 ? <SceneBar scenes={scenes} /> : null}
     >
       <div className="light-overview">
         <FloorPlan lights={lightStates} />

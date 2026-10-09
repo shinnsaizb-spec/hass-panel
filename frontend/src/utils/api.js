@@ -120,9 +120,12 @@ function ensureBackgroundVideo(url) {
     video.dataset.src = url;
     video.src = url;
   }
-  // 自动播放可能被浏览器策略拦下，失败也不影响其它背景设置
-  const playing = video.play();
-  if (playing && typeof playing.catch === 'function') playing.catch(() => {});
+  // 只有暂停时才请求播放；重复调用 play() 可能让某些浏览器重新调度视频合成层，
+  // 卡片的 backdrop-filter 会随之短暂变样。
+  if (video.paused) {
+    const playing = video.play();
+    if (playing && typeof playing.catch === 'function') playing.catch(() => {});
+  }
   return video;
 }
 
@@ -131,8 +134,49 @@ function removeBackgroundVideo() {
   if (video) video.remove();
 }
 
+// 图片背景改用一个独立的「固定定位图层」，而不是 body 的 background-attachment: fixed。
+// ⚠️ 原因：background-attachment: fixed 在页面内容大幅变化（如切换分组）时会被**重新栅格化**，
+//    表现为整屏（含背景）闪一下。独立 position:fixed 图层有自己的合成层，不跟着重画。
+const BG_IMAGE_ID = 'hass-panel-bg-image';
+
+function ensureBackgroundImage(url) {
+  let el = document.getElementById(BG_IMAGE_ID);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = BG_IMAGE_ID;
+    el.setAttribute('aria-hidden', 'true');
+    Object.assign(el.style, {
+      position: 'fixed',
+      inset: '0',
+      zIndex: '-1',
+      pointerEvents: 'none',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      // 强制独立合成层：页面内容变化时不重栅格 → 不闪
+      transform: 'translateZ(0)',
+      willChange: 'transform',
+    });
+    document.body.insertBefore(el, document.body.firstChild);
+  }
+  const next = url ? `url(${url})` : 'none';
+  if (el.style.backgroundImage !== next) el.style.backgroundImage = next;
+  return el;
+}
+
+function removeBackgroundImage() {
+  const el = document.getElementById(BG_IMAGE_ID);
+  if (el) el.remove();
+}
+
 // 保存最近一次的全局配置，供主题切换回调使用（避免闭包捕获到旧值）
 let latestGlobalConfig = null;
+
+// 上一次实际应用过的「配置 + 主题」签名。用来做幂等：
+// ⚠️ configApi.getConfig() 每次被调用都会走这里；切换分组等场景也会触发 getConfig，
+//    如果不加判断，就会把背景视频重新插入/重新播放 —— 背景跳一下，
+//    叠在上面的半透明玻璃卡片看起来也「变了样」。
+let _lastBgSig = null;
 
 // 应用背景设置到body
 export const applyBackgroundToBody = (globalConfig) => {
@@ -142,6 +186,11 @@ export const applyBackgroundToBody = (globalConfig) => {
   // 检测当前主题模式 - 只检查应用内部的主题标记，不考虑系统偏好
   const isDarkMode = document.documentElement.classList.contains('dark') || 
                      document.documentElement.getAttribute('data-theme') === 'dark';
+
+  // 配置和主题都没变 → 不重复设置背景（幂等）
+  const _sig = JSON.stringify(globalConfig) + '|' + isDarkMode;
+  if (_sig === _lastBgSig) return;
+  _lastBgSig = _sig;
 
   // 设置背景颜色
   if (globalConfig.backgroundColor) {
@@ -160,6 +209,7 @@ export const applyBackgroundToBody = (globalConfig) => {
 
   if (backgroundImage && isVideoBackground(backgroundImage)) {
     // 视频背景：交给 <video> 元素播放，body 本身不要再用 background-image
+    removeBackgroundImage();
     document.body.style.backgroundImage = 'none';
     document.body.style.backgroundSize = '';
     document.body.style.backgroundPosition = '';
@@ -168,16 +218,15 @@ export const applyBackgroundToBody = (globalConfig) => {
   } else {
     // 图片背景（或没有背景）：移除视频元素
     removeBackgroundVideo();
+    // body 自身不再用 background-image（避免 background-attachment: fixed 的整屏重栅格闪烁）
+    document.body.style.backgroundImage = 'none';
+    document.body.style.backgroundSize = '';
+    document.body.style.backgroundPosition = '';
+    document.body.style.backgroundAttachment = '';
     if (backgroundImage) {
-      document.body.style.backgroundImage = `url(${backgroundImage})`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundAttachment = 'fixed';
+      ensureBackgroundImage(backgroundImage);
     } else {
-      document.body.style.backgroundImage = 'none';
-      document.body.style.backgroundSize = '';
-      document.body.style.backgroundPosition = '';
-      document.body.style.backgroundAttachment = '';
+      removeBackgroundImage();
     }
   }
   
@@ -217,6 +266,14 @@ export const configApi = {
       if (config.data.globalConfig) {
         window.globalConfigCache = config.data.globalConfig;
         applyBackgroundToBody(config.data.globalConfig);
+        // ⚠️ 必须广播一次：否则那些「运行时读 window.globalConfigCache」的模块
+        //    （如液态玻璃折射引擎）在首屏加载时读到的是空对象 → 用默认值渲染，
+        //    表现为「保存过的参数刷新后不生效，要打开一次全局配置才生效」。
+        window.dispatchEvent(
+          new CustomEvent('hasspanel:global-config-changed', {
+            detail: config.data.globalConfig,
+          })
+        );
       }
       
       return config;
@@ -362,7 +419,14 @@ export const configApi = {
 
       // 应用背景设置到body
       applyBackgroundToBody(updatedConfig.globalConfig);
-      
+
+      // 广播给页面（主页 / 配置页）刷新各自的 globalConfig 状态。
+      // ⚠️ 否则「卡片背景透明度 / 标题高度 / 下拉屏参数」等只在重新挂载或切换分组
+      //    （主页 loadConfig 的依赖里有 activeGroup）时才生效 —— 用户会看到「改了没反应」。
+      window.dispatchEvent(
+        new CustomEvent('hasspanel:global-config-changed', { detail: updatedConfig.globalConfig })
+      );
+
       return updatedConfig.globalConfig;
     } catch (error) {
       throw error;
@@ -391,6 +455,8 @@ export const configApi = {
       await configApi.saveConfig(updatedConfig);
       
       // 重置body样式
+      _lastBgSig = null; // 让下次 applyBackgroundToBody 能重新应用
+      removeBackgroundImage();
       document.body.style.backgroundImage = 'none';
       document.body.style.backgroundColor = '';
       document.body.style.backgroundSize = '';
@@ -748,7 +814,7 @@ export const hassApi = {
   } 
 };
 
-// 卡片插件相关 API（MoviePilot 式：上传插件包 → 重启/重扫即生效）
+// 卡片插件相关 API（上传插件包 → 重启/重扫即生效）
 // ⚠️ axiosInstance 的 baseURL 已是 './api'，这里路径不要再带 /api 前缀，否则会变成 /api/api/...
 export const pluginApi = {
   // 获取已安装插件列表
@@ -824,6 +890,120 @@ export const pluginApi = {
     } catch (error) {
       throw error;
     }
+  },
+  // 卡片显示名覆盖表：{ "<cardType>": "自定义名" }
+  cardNames: async () => {
+    try {
+      const response = await axiosInstance.get('/plugins/card-names');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 重命名任意卡片（内置 / 插件都行）；name 传空字符串则恢复默认
+  renameCard: async (cardType, name) => {
+    try {
+      const response = await axiosInstance.post(
+        `/plugins/card-names/${encodeURIComponent(cardType)}`,
+        { name }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 被禁用的卡片类型列表
+  cardDisabled: async () => {
+    try {
+      const response = await axiosInstance.get('/plugins/card-disabled');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 启用 / 禁用一张卡片
+  setCardDisabled: async (cardType, disabled) => {
+    try {
+      const response = await axiosInstance.post(
+        `/plugins/card-disabled/${encodeURIComponent(cardType)}`,
+        { disabled }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 
+// 附件管理：上传目录里的图标 / 图片 / 动图
+export const attachmentApi = {
+  // 列出所有附件（含分类：icon / image / animated / other）
+  list: async () => {
+    try {
+      const response = await axiosInstance.get('/common/attachments');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 重命名（新名不写扩展名时后端会自动沿用原扩展名）
+  rename: async (name, newName) => {
+    try {
+      const response = await axiosInstance.post(
+        `/common/attachments/${encodeURIComponent(name)}/rename`,
+        { new_name: newName }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 删除
+  remove: async (name) => {
+    try {
+      const response = await axiosInstance.delete(
+        `/common/attachments/${encodeURIComponent(name)}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 把视频附件（mp4/mov/m4v…）转成 webm（后端调 ffmpeg），立即返回 task_id
+  transcode: async (name) => {
+    try {
+      const response = await axiosInstance.post(
+        `/common/attachments/transcode`,
+        { name }
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 轮询转码进度：GET /common/attachments/transcode/{taskId}
+  transcodeProgress: async (taskId) => {
+    try {
+      const response = await axiosInstance.get(
+        `/common/attachments/transcode/${encodeURIComponent(taskId)}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  // 取消转码：POST /common/attachments/transcode/{taskId}/cancel
+  transcodeCancel: async (taskId) => {
+    try {
+      const response = await axiosInstance.post(
+        `/common/attachments/transcode/${encodeURIComponent(taskId)}/cancel`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
+
+// 户型图（3D floorplan）等新模块直接复用这个带认证的实例
+export { axiosInstance };

@@ -21,7 +21,9 @@ const swallow = (tag) => (proxy) => {
 // 这两个值都可以用环境变量覆盖，改了 go2rtc 端口时不用改代码：
 //   GO2RTC_TARGET=http://127.0.0.1:5125  代理转发到哪
 //   GO2RTC_ORIGIN=http://127.0.0.1:5125  转发时把 Origin 改写成什么
-const GO2RTC_TARGET = process.env.GO2RTC_TARGET || 'http://127.0.0.1:5125';
+// ⚠️ 本地开发默认端口改成 6125 / 6124：Windows 保留了 5051-5150 整段端口
+// （5123-5127 全在里面，绑不上），Docker/NAS 部署不受影响（那边用 nginx 的 5123/5124）。
+const GO2RTC_TARGET = process.env.GO2RTC_TARGET || 'http://127.0.0.1:6125';
 
 // go2rtc 会校验 Origin 头：必须是它自己的地址，否则 WebSocket 握手直接 403。
 // 浏览器经过 dev server（3000）访问时，Origin 是 http://127.0.0.1:3000，
@@ -61,7 +63,7 @@ module.exports = {
         onProxyRes: swallow('proxyRes /go2rtc'),
       },
       '/api': {
-        target: 'http://127.0.0.1:5124',
+        target: 'http://127.0.0.1:6124',
         changeOrigin: true,
         onError: onError('/api'),
         onProxyReq: swallow('proxyReq /api'),
@@ -69,7 +71,7 @@ module.exports = {
       },
       // 插件 bundle 静态文件（开发态由后端 StaticFiles 提供，生产由 nginx alias 提供）
       '/plugins': {
-        target: 'http://127.0.0.1:5124',
+        target: 'http://127.0.0.1:6124',
         changeOrigin: true,
         onError: onError('/plugins'),
         onProxyReq: swallow('proxyReq /plugins'),

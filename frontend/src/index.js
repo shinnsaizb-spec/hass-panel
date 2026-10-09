@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+// 液态玻璃风格（卡片 / 下拉屏 / 开关 / 滑块 / 搜索框）。放在 index.css 之后。
+import './theme/liquid-glass.css';
 import App from './App';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';

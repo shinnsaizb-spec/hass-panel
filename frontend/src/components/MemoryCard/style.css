@@ -1,0 +1,37 @@
+/* ==========================================================================
+   内存 / 显存卡片（行外观在 components/HardwareBarRow）
+   --------------------------------------------------------------------------
+   ⚠️ `.base-card .mc-body` 用 `!important`：主页全局有
+      `.base-card > div:not(.card-header) { overflow: visible }`（优先级更高），
+      不加的话卡片内部滚动失效、内容会溢出卡片。
+   ========================================================================== */
+
+.base-card .mc-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto !important;
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+/* ---------- 空态 ---------- */
+.mc-empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-size: 13px;
+}
+
+.mc-empty-hint {
+  font-size: 11px;
+  opacity: 0.8;
+  line-height: 1.5;
+}

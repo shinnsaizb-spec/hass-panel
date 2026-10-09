@@ -1,6 +1,9 @@
 [base]
 name = 'Hass Panel'
-web_port = 5124
+# ⚠️ 本地开发端口改成 6124：Windows 把 5051-5150 整段保留给了系统
+# （netsh int ipv4 show excludedportrange protocol=tcp 可见），5124 在里面绑不上。
+# Docker/NAS 部署走的是 prod.toml + nginx（仍是 5123/5124），不受影响。
+web_port = 6124
 env = "dev"
 notify_token = "hasspanel"
 debug = true

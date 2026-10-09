@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Icon from '@mdi/react';
 import { mdiClose } from '@mdi/js';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { getCardTranslationKey } from '../../utils/cardTranslation';
 import { Input, Empty } from 'antd';
 import './style.css';
 
@@ -9,21 +10,18 @@ function AddCardModal({ onClose, onSelect, cardTypes }) {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 添加一个帮助函数来处理翻译键
-  const getTranslationKey = (type) => {
-    // 特殊情况处理
-    if (type === 'ScriptPanel') return 'script';
-    if (type === 'WaterPurifierCard') return 'water';
-    if (type === 'LightOverviewCard') return 'lightOverview';
-    // 一般情况处理
-    return type.replace('Card', '').toLowerCase();
+  // 显示名优先用卡片目录里的 name（内置卡片 = i18n；插件卡片 = manifest.name，
+  // 且已被「插件管理 → 卡片显示名」的覆盖名替换过）。万一 name 缺失，再退回 cardTitles。
+  const getDisplayName = (type, config) => {
+    const fromName = config && config.name;
+    if (fromName) return fromName;
+    return t(`cardTitles.${getCardTranslationKey(type)}`);
   };
 
-  // 过滤卡片类型
-  const filteredCardTypes = Object.entries(cardTypes).filter(([type]) => {
-    const translationKey = getTranslationKey(type);
-    const cardName = t(`cardTitles.${translationKey}`).toLowerCase();
-    return cardName.includes(searchTerm.toLowerCase());
+  // 过滤卡片类型：已禁用的不显示
+  const filteredCardTypes = Object.entries(cardTypes).filter(([type, config]) => {
+    if (config && config.disabled) return false;
+    return getDisplayName(type, config).toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   return (
@@ -52,16 +50,16 @@ function AddCardModal({ onClose, onSelect, cardTypes }) {
         <div className="card-types">
           {filteredCardTypes.length > 0 ? (
             filteredCardTypes.map(([type, config]) => {
-              const translationKey = getTranslationKey(type);
+              const displayName = getDisplayName(type, config);
               return (
                 <button
                   key={type}
                   className="card-type-button"
                   onClick={() => onSelect(type)}
-                  title={t(`cardTitles.${translationKey}`)}
+                  title={displayName}
                 >
                   <Icon path={config.icon} size={14} />
-                  <span>{t(`cardTitles.${translationKey}`)}</span>
+                  <span>{displayName}</span>
                 </button>
               );
             })

@@ -1,0 +1,162 @@
+/* ==========================================================================
+   「卡片位」弹出浮层
+   --------------------------------------------------------------------------
+   不使用项目的 Modal 组件，因为需要「拖标题栏移动 + 右下角拉伸」，
+   而且位置/大小要能保存进配置。
+   z-index 要比配置页的 antd Modal 更高，编辑时才能在弹窗之上操作。
+   ========================================================================== */
+
+.csp-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 10000010;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.csp-mask.is-editing {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.csp-box {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--color-card-bg);
+  border-radius: var(--border-radius-medium);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.csp-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.12));
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.csp-header:active {
+  cursor: grabbing;
+}
+
+.csp-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.csp-hint {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.csp-close {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: none;
+  border-radius: var(--border-radius-small);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.csp-close:hover {
+  background: var(--color-background-hover, rgba(127, 127, 127, 0.18));
+  color: var(--color-text-primary);
+}
+
+.csp-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.csp-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 编辑模式：右下角的保存 / 取消 */
+.csp-actions {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 3;
+}
+
+.csp-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small);
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1.2;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.csp-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.csp-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.csp-btn-primary:hover {
+  color: #fff;
+  opacity: 0.9;
+}
+
+/* 右下角拉伸把手 */
+.csp-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  cursor: se-resize;
+  border-right: 3px solid var(--color-primary);
+  border-bottom: 3px solid var(--color-primary);
+  border-bottom-right-radius: var(--border-radius-medium);
+  opacity: 0.65;
+  touch-action: none;
+  z-index: 4;
+}
+
+.csp-resize:hover {
+  opacity: 1;
+}

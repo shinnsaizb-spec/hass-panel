@@ -19,3 +19,28 @@
     background-color: var(--color-background);
     border-radius: 3px; /* 调整圆角 */
 }
+/* 「隐藏标题栏」开关：放在表单最上面 */
+.edit-card-hide-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.06));
+}
+
+.edit-card-hide-title-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.edit-card-hide-title-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}

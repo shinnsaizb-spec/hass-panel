@@ -1,0 +1,134 @@
+/* ==========================================================================
+   卡片管理弹窗
+   --------------------------------------------------------------------------
+   布局参考「全局配置」：分区标题用主题色 + 虚线下边框 + chevron 折叠图标。
+   ========================================================================== */
+
+.cm-hint {
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+/* ---------- 分区（折叠） ---------- */
+.cm-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-section + .cm-section {
+  margin-top: 6px;
+}
+
+.cm-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-top: 4px;
+  padding: 8px 2px;
+  border: none;
+  border-bottom: 1px dashed var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.cm-section-title:hover {
+  opacity: 0.85;
+}
+
+.cm-section-title svg {
+  flex: 0 0 auto;
+}
+
+.cm-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.15));
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+}
+
+.cm-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+/* ---------- 列表 ---------- */
+.cm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.cm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, rgba(127, 127, 127, 0.25));
+  border-radius: 10px;
+}
+
+/* 已禁用的卡片整行淡一点 */
+.cm-item.is-disabled {
+  opacity: 0.55;
+}
+
+.cm-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cm-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.cm-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0.8;
+}
+
+.cm-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}

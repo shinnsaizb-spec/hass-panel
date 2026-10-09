@@ -504,3 +504,312 @@
     padding: var(--spacing-xs) var(--spacing-sm);
   }
 }
+/* ==========================================================================
+   标题栏右侧的「情景」开关按钮组
+   ========================================================================== */
+
+.light-scene-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+  /* 允许收缩，避免把标题栏撑宽、挤压标题文字。
+     不再 overflow:hidden —— 下拉已改成 Portal，不需要靠裁剪来兜底。 */
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------
+   情景按钮：收起时是方形图标按钮；hover 向右展开、滑出情景名。
+   尺寸用变量，方便整体调大 / 调小（默认按卡片标题栏高度取 34px）。
+   ------------------------------------------------------------------ */
+.light-scene-btn {
+  --lsb-size: 34px;
+  --lsb-hover-w: 118px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 auto;
+  width: var(--lsb-size);
+  height: var(--lsb-size);
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-card-bg);
+  color: var(--color-text-secondary);
+  box-shadow: 1px 1px 5px 0.2px var(--color-shadow, rgba(0, 0, 0, 0.2));
+  font-family: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  transition: width 0.2s linear, color 0.2s linear, background 0.2s linear;
+  transition-delay: 0.2s;
+}
+
+.light-scene-btn:hover {
+  width: var(--lsb-hover-w);
+  transition-delay: 0.2s;
+}
+
+/* 情景名：默认隐藏，hover 时才滑出 */
+.light-scene-label {
+  min-width: 0;
+  visibility: hidden;
+  opacity: 0;
+  margin-right: var(--lsb-size);
+  padding-left: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: currentColor;
+  transition: opacity 0.2s linear, visibility 0.2s linear;
+}
+
+.light-scene-btn:hover .light-scene-label {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0.4s;
+}
+
+/* 图标固定贴在右侧方块里 */
+.light-scene-ico {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--lsb-size);
+  height: var(--lsb-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.light-scene-icon {
+  transition: transform 0.2s linear;
+}
+
+.light-scene-btn:hover .light-scene-icon {
+  transform: scale(1.1);
+}
+
+/* 该情景里的灯全开着时高亮（图标变主题色，背景淡染） */
+.light-scene-btn.is-on {
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, var(--color-card-bg));
+}
+
+/* ==========================================================================
+   「卡片位」：点一下弹出绑定的那张卡片
+   ========================================================================== */
+
+.card-slot-button {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-card-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 4px var(--color-shadow);
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.card-slot-button:hover {
+  color: var(--color-primary);
+}
+
+/* 弹出卡片的内容容器（宽高由「布局编辑」里的设置决定） */
+.card-slot-popup {
+  width: 100%;
+  overflow: hidden;
+}
+
+.card-slot-popup > * {
+  height: 100%;
+}
+
+.card-slot-missing {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* 卡片位按钮里的自定义图片（支持 GIF）：限制在按钮内，不溢出 */
+.card-slot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ==========================================================================
+   情景：收进下拉 / 标题不被撑宽
+   ========================================================================== */
+
+/* 标题文字永不换行、过长省略（只作用于智能概览卡片，不影响别的卡片） */
+.light-overview-smart .card-header h3 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* 折叠时的「情景」按钮 + 下拉 */
+.light-scene-menu-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* 打开时给触发按钮一点提示色 */
+.light-scene-menu-btn.is-open {
+  color: var(--color-primary);
+}
+
+/* 下拉用 Portal 挂到 body：避免被卡片（ScaledCard 的 transform+overflow）裁掉 */
+.light-scene-menu-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+}
+
+.light-scene-menu-portal {
+  position: fixed;
+  z-index: 1095;
+  padding: 6px 10px 6px 12px;
+  /* 宽度由最长的情景名撑开：正好包住全部选项（max-content），不设固定宽 */
+  width: max-content;
+  min-width: 0;
+  max-width: 280px;
+  /* 背景框：刚好覆盖全部选项；overflow:hidden 把光条溢出的辉光收在框内 */
+  overflow: hidden;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-card-bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 14%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  color: var(--color-text-primary);
+}
+
+/* ------------------------------------------------------------------
+   下拉里的 radio 列表：左侧一条「滑轨」，光条（glider）停在当前选中的情景上。
+   --total-radio = 情景数量（由 JSX 内联设置），光条高度 = 1/N。
+   ------------------------------------------------------------------ */
+.light-scene-radio-container {
+  --ls-main: var(--color-primary);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+}
+
+/* 真正的 radio：藏起来，只留语义（点击由 label 触发） */
+.light-scene-radio {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.light-scene-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+  transition: color 0.3s ease-in-out;
+}
+
+.light-scene-radio-label > .light-scene-radio-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 选中的那一项文字变主题色 */
+.light-scene-radio:checked + .light-scene-radio-label {
+  color: var(--ls-main);
+}
+
+/* 左侧滑轨（一条竖向渐隐的细线） */
+.light-scene-radio-track {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  /* ⚠️ 纯装饰，必须不挡点击：它是定位元素，会画在 label 上面；
+     光条 ::before/::after 还很宽（150px / 300%），不设 none 会盖住 label 吞掉点击 */
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0%,
+    color-mix(in srgb, var(--color-text-primary) 55%, transparent) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* 光条：高度 = 100% / 情景数，靠 transform 位移到选中项 */
+.light-scene-radio-glider {
+  position: relative;
+  height: calc(100% / var(--total-radio));
+  width: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0%,
+    var(--ls-main) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  transition: transform 0.5s cubic-bezier(0.37, 1.95, 0.66, 0.56);
+}
+
+.light-scene-radio-glider::before {
+  content: '';
+  position: absolute;
+  height: 60%;
+  width: 300%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--ls-main);
+  filter: blur(10px);
+}
+
+.light-scene-radio-glider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  height: 100%;
+  width: 150px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--ls-main) 12%, transparent) 0%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+
+/* 卡片位用了自定义图片（含 GIF）时：去掉圆形外框，直接按图标大小显示 */
+.card-slot-button.has-image {
+  background: none;
+  box-shadow: none;
+  border: none;
+}

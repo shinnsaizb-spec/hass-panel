@@ -25,10 +25,14 @@ export default function NotificationPopup({ settings = {}, editable = false, onS
   const toasts = useNotifyStore((s) => s.toasts);
   const removeToast = useNotifyStore((s) => s.removeToast);
   const ensureStream = useNotifyStore((s) => s.ensureStream);
+  const stopStream = useNotifyStore((s) => s.stopStream);
 
+  // 通知总开关（全局配置）：关掉后不建立 SSE 连接，并断开已有连接 —— 彻底不再接收消息
+  const notifyEnabled = (settings || {}).notifyEnabled !== false;
   useEffect(() => {
-    ensureStream();
-  }, [ensureStream]);
+    if (notifyEnabled) ensureStream();
+    else stopStream();
+  }, [notifyEnabled, ensureStream, stopStream]);
 
   const s = settings || {};
   const duration = (() => {

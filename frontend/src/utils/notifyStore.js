@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { notifyApi } from './api';
 
-// 全局只维持一条 SSE 连接：弹窗（NotificationPopup）和历史卡片（NotifyHistoryCard）
+// 全局只维持一条 SSE 连接：弹窗（NotificationPopup）与消息通知卡片（插件版 NotifyHistoryCardPro）
 // 都从这里取数据，避免开两条连接、收到重复消息。
 let _es = null;
 let _started = false;
@@ -15,9 +15,15 @@ export const useNotifyStore = create((set, get) => ({
   connected: false,
   token: '', // webhook token，图片代理要用
 
-  /** 建立 SSE 连接（幂等，重复调用只连一次）。 */
+  /** 建立 SSE 连接（幂等，重复调用只连一次）。通知总开关关闭时直接不连。 */
   ensureStream: () => {
     if (_started || typeof window === 'undefined') return;
+    try {
+      const gc = window.globalConfigCache || {};
+      if (gc.notifyEnabled === false) return; // 总开关关掉 → 不接收任何消息
+    } catch (_) {
+      /* 读不到就按默认（开）处理 */
+    }
     _started = true;
     try {
       _es = new EventSource('./api/notify/stream');
@@ -43,6 +49,20 @@ export const useNotifyStore = create((set, get) => ({
     } catch (_) {
       _started = false;
     }
+  },
+
+  /** 断开 SSE 并清空弹窗（关闭通知总开关时调用）。 */
+  stopStream: () => {
+    if (_es) {
+      try {
+        _es.close();
+      } catch (_) {
+        /* ignore */
+      }
+      _es = null;
+    }
+    _started = false;
+    set({ connected: false, toasts: [] });
   },
 
   removeToast: (toastKey) =>

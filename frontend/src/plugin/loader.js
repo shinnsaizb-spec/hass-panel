@@ -10,11 +10,19 @@
 import { registerCard } from '../cards/registry';
 
 const PLUGIN_API = '/api/plugins';
+const CARD_NAMES_API = '/api/plugins/card-names';
+const CARD_DISABLED_API = '/api/plugins/card-disabled';
 
 const loaded = new Set();
 
 // 插件展示元数据的运行时代码缓存（配置页/首页读取）
 let pluginCards = [];
+
+// 卡片显示名覆盖表（「卡片管理 → 卡片显示名」里改的），配置页读取
+let cardNameOverrides = {};
+
+// 被禁用的卡片类型列表（「卡片管理」里禁用的），配置页/首页读取
+let cardDisabledList = [];
 
 function setPluginCards(list) {
   pluginCards = (list || []).map((p) => ({
@@ -30,6 +38,49 @@ function setPluginCards(list) {
     window.__HASS_PANEL_PLUGIN_CARDS__ = pluginCards;
     window.dispatchEvent(new Event('hasspanel:plugins-loaded'));
   }
+}
+
+/** 拉取「卡片显示名覆盖表」+「禁用卡片列表」。失败不影响插件加载，只是没有自定义设置。 */
+export async function loadCardSettings() {
+  try {
+    const [namesRes, disabledRes] = await Promise.all([
+      fetch(CARD_NAMES_API, { credentials: 'include', cache: 'no-store' }),
+      fetch(CARD_DISABLED_API, { credentials: 'include', cache: 'no-store' }),
+    ]);
+    if (namesRes.ok) {
+      const d = await namesRes.json();
+      cardNameOverrides = (d && d.names) || {};
+    }
+    if (disabledRes.ok) {
+      const d = await disabledRes.json();
+      cardDisabledList = (d && d.disabled) || [];
+    }
+  } catch (e) {
+    /* 保持旧值 */
+  }
+  if (typeof window !== 'undefined') {
+    window.__HASS_PANEL_CARD_NAMES__ = cardNameOverrides;
+    window.__HASS_PANEL_CARD_DISABLED__ = cardDisabledList;
+    // 复用同一个事件，让配置页 / 首页重新计算卡片列表
+    window.dispatchEvent(new Event('hasspanel:plugins-loaded'));
+  }
+}
+
+/** 卡片显示名覆盖表（供配置页计算显示名）。 */
+export function getCardNameOverrides() {
+  if (typeof window !== 'undefined' && window.__HASS_PANEL_CARD_NAMES__) {
+    return window.__HASS_PANEL_CARD_NAMES__;
+  }
+  return cardNameOverrides;
+}
+
+/** 被禁用的卡片类型（Set，供「添加卡片」过滤与首页占位判断）。 */
+export function getCardDisabled() {
+  const list =
+    typeof window !== 'undefined' && window.__HASS_PANEL_CARD_DISABLED__
+      ? window.__HASS_PANEL_CARD_DISABLED__
+      : cardDisabledList;
+  return new Set(Array.isArray(list) ? list : []);
 }
 
 /** 插件卡片目录（供配置页 add-card 列表合并）。 */
@@ -52,6 +103,8 @@ export function getPluginCardHeights() {
 /** 启动加载所有插件。幂等，重复调用不会重复注册。 */
 export async function loadPlugins() {
   try {
+    // 先拉「卡片显示名 + 禁用状态」，让配置页能拿到自定义设置
+    await loadCardSettings();
     // no-store：避免浏览器缓存旧的插件清单（entry 地址可能已变化）
     const res = await fetch(PLUGIN_API, { credentials: 'include', cache: 'no-store' });
     if (!res.ok) {

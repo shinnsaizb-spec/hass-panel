@@ -1,10 +1,74 @@
 import { useLanguage } from '../../i18n/LanguageContext';
 import { configApi,systemApi,applyBackgroundToBody,notifyApi } from '../../utils/api';
+import AttachmentManagerModal from '../AttachmentManagerModal';
 import { Switch, message, Slider, Select, Spin } from 'antd';
 import { useRef, useEffect, useState } from 'react';
 import Icon from '@mdi/react';
-import { mdiChevronDown, mdiChevronUp } from '@mdi/js';
+import { mdiChevronDown, mdiChevronUp, mdiCheck } from '@mdi/js';
+import {
+    attachLiquidGlass,
+    applyCardStyle,
+    readParams,
+    supportsRefraction,
+    LG_DEFAULTS,
+} from '../../theme/liquid-glass-refraction';
 import './style.css';
+
+/** 卡片风格可选项（值写到 globalConfig.cardStyle，引擎据此设 body[data-card-style]）。 */
+const CARD_STYLE_OPTIONS = [
+    { id: 'liquid', labelKey: 'config.cardStyleLiquid', descKey: 'config.cardStyleLiquidDesc' },
+    { id: 'frosted', labelKey: 'config.cardStyleFrosted', descKey: 'config.cardStyleFrostedDesc' },
+    { id: 'clear', labelKey: 'config.cardStyleClear', descKey: 'config.cardStyleClearDesc' },
+    { id: 'solid', labelKey: 'config.cardStyleSolid', descKey: 'config.cardStyleSolidDesc' },
+];
+
+/** 液态玻璃的每个可调参数：范围 / 步长 / 默认值 / 单位。 */
+const LG_FIELDS = [
+    { key: 'lgBlur', min: 0, max: 40, step: 1, def: LG_DEFAULTS.blur, unit: 'px' },
+    { key: 'lgScaleRatio', min: 0, max: 3, step: 0.05, def: LG_DEFAULTS.scaleRatio, unit: '×' },
+    { key: 'lgGlassThickness', min: 0, max: 400, step: 5, def: LG_DEFAULTS.glassThickness, unit: 'px' },
+    { key: 'lgBezelWidth', min: 1, max: 80, step: 1, def: LG_DEFAULTS.bezelWidth, unit: 'px' },
+    { key: 'lgRefractiveIndex', min: 1.01, max: 2.5, step: 0.01, def: LG_DEFAULTS.refractiveIndex, unit: '' },
+    { key: 'lgSpecularOpacity', min: 0, max: 1, step: 0.05, def: LG_DEFAULTS.specularOpacity, unit: '' },
+    { key: 'lgSpecularSaturation', min: 1, max: 12, step: 0.5, def: LG_DEFAULTS.specularSaturation, unit: '' },
+    // 背景不透明度：所有风格都有（毛玻璃 / 通透 / 实色 的参数区也用它）
+    { key: 'lgOpacity', min: 0, max: 1, step: 0.05, def: LG_DEFAULTS.opacity, unit: '' },
+];
+
+/** 按 key 取字段定义，方便在「非液态玻璃」的参数区复用同两个滑块。 */
+const fieldByKey = (key) => LG_FIELDS.find((f) => f.key === key);
+
+/** 下拉面板自己的两个参数（面板毛玻璃 / 背景透明度）。 */
+const DRAWER_FIELDS = [
+    { key: 'drawerOpacity', min: 0, max: 1, step: 0.05, def: 0.6, unit: '' },
+    { key: 'drawerBlur', min: 0, max: 60, step: 1, def: 12, unit: 'px' },
+];
+
+/** 带数值显示的滑块。定义在组件外，避免每次渲染重建组件类型导致失焦。 */
+function LgSlider({ label, hint, field, value, onChange }) {
+    const raw = value === '' || value === null || value === undefined ? field.def : Number(value);
+    const v = Number.isFinite(raw) ? raw : field.def;
+    return (
+        <div className="global-config-form-item">
+            <label>
+                {label}
+                <span className="lg-param-value">
+                    {Math.round(v * 100) / 100}
+                    {field.unit}
+                </span>
+            </label>
+            <Slider
+                min={field.min}
+                max={field.max}
+                step={field.step}
+                value={v}
+                onChange={(n) => onChange(n)}
+                tooltip={{ open: false }}
+            />
+            {hint && <div className="hint">{hint}</div>}
+        </div>
+    );
+}
 
 // 可折叠的设置模块：点标题展开/收起。
 // ⚠️ 定义在组件外：若定义在 GlobalConfig 内部，每次渲染都会重建组件类型，
@@ -22,6 +86,9 @@ function Section({ title, collapsed, onToggle, children }) {
 }
 
 function GlobalConfig({ setShowGlobalConfig }) {
+    // 已保存配置的快照：关闭/取消时用来还原「实时预览」的改动
+    const savedConfigRef = useRef(null);
+
     // 加载全局配置
     useEffect(() => {
         const loadGlobalConfig = async () => {
@@ -30,6 +97,7 @@ function GlobalConfig({ setShowGlobalConfig }) {
                 const config = response.data;
                 if (config.globalConfig) {
                     setGlobalConfig(config.globalConfig);
+                    savedConfigRef.current = config.globalConfig;
                     // 背景（图片或视频）统一走公共实现
                     applyBackgroundToBody(config.globalConfig);
                 }
@@ -54,9 +122,13 @@ function GlobalConfig({ setShowGlobalConfig }) {
         drawerBlur: '',
         // 卡片背景统一透明度
         cardOpacity: '',
+        // 卡片悬停水波特效（较耗性能，可关）
+        cardRipple: true,
         // 卡片标题：高度 / 字号（收缩放大卡片不影响标题）
         cardTitleHeight: '',
         cardTitleFontSize: '',
+        // 通知总开关：关闭后前端不建立 SSE 连接、后端也不接收 webhook
+        notifyEnabled: true,
         // 通知弹窗位置（旧的四角枚举；设了 notifyX/notifyY 后以坐标为准）
         notifyPosition: 'top-right',
         // 通知：时长 / 大小 / 坐标（拖动生成）/ 保留条数 / 图片
@@ -71,8 +143,25 @@ function GlobalConfig({ setShowGlobalConfig }) {
         notifyImageTimeout: '',
         notifySaveImages: false,
         // 高德地图 Key（Web端 JS API）；留空则地图卡片提示未配置
-        amapKey: ''
+        amapKey: '',
+        // 液态玻璃（卡片边缘真实折射）：见 theme/liquid-glass-refraction.js
+        cardStyle: 'liquid',
+        lgEnabled: true,
+        lgOpacity: '',
+        lgBlur: '',
+        lgScaleRatio: '',
+        lgGlassThickness: '',
+        lgBezelWidth: '',
+        lgRefractiveIndex: '',
+        lgSpecularOpacity: '',
+        lgSpecularSaturation: ''
     });
+
+    // 哪个背景字段正在「从附件选择」（null = 没开）
+    const [pickerFor, setPickerFor] = useState(null);
+
+    // 预览小窗：点「卡片风格」里的某个风格才弹出来（默认不显示）
+    const [showPreview, setShowPreview] = useState(false);
 
     // webhook 信息（地址 + 令牌），登录后拉取，用于复制 / 发送测试通知
     const [webhookInfo, setWebhookInfo] = useState(null);
@@ -87,6 +176,7 @@ function GlobalConfig({ setShowGlobalConfig }) {
         drawer: true,
         cardOpacity: true,
         cardTitle: true,
+        cardStyle: false,
         notify: true,
         map: true,
     });
@@ -119,11 +209,72 @@ function GlobalConfig({ setShowGlobalConfig }) {
         loadWebhookInfo();
     }, []);
 
+    // 实时预览：弹窗里改动任何外观字段（卡片透明度 / 毛玻璃 / 标题…）立刻广播给
+    // 主页与下拉屏，不用等点「保存」——否则用户拖完滑块看不到变化，会以为「改了没反应」。
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent('hasspanel:global-config-changed', { detail: globalConfig })
+        );
+    }, [globalConfig]);
+
+    // 液态玻璃：弹窗里的小预览。拖滑块立刻重建滤镜，不用关掉弹窗去主页看。
+    // 预览卡片的圆角和引擎里的 CARD_RADIUS 一致（20px）。
+    const lgPreviewRef = useRef(null);
+    const lgPreviewHandleRef = useRef(null);
+    useEffect(() => {
+        const target = lgPreviewRef.current;
+        if (!target) {
+            // 折叠起来了：预览元素不在 DOM 里，把旧滤镜清掉
+            if (lgPreviewHandleRef.current) {
+                lgPreviewHandleRef.current.destroy();
+                lgPreviewHandleRef.current = null;
+            }
+            return;
+        }
+        const params = readParams(globalConfig);
+        // ⚠️ 必须自己把卡片风格写到 <body data-card-style>：
+        //    「全局配置」也常常是在**配置页**打开的，那时 Home 没挂载、折射引擎没跑，
+        //    没有别人会去写这个属性 → 预览会一直停在旧风格、拉参数也没反应。
+        applyCardStyle(params.style, params.blur, params.opacity);
+        if (lgPreviewHandleRef.current) {
+            lgPreviewHandleRef.current.update(params);
+        } else {
+            lgPreviewHandleRef.current = attachLiquidGlass(target, params);
+        }
+    }, [globalConfig, showPreview]);
+
+    // 弹窗卸载时清理预览滤镜，避免留下孤立的 <svg><filter>
+    useEffect(
+        () => () => {
+            if (lgPreviewHandleRef.current) {
+                lgPreviewHandleRef.current.destroy();
+                lgPreviewHandleRef.current = null;
+            }
+        },
+        []
+    );
+
+    // 关闭（取消）时把「未保存的实时预览」还原成已保存的配置
+    const closeModal = () => {
+        if (savedConfigRef.current) {
+            window.dispatchEvent(
+                new CustomEvent('hasspanel:global-config-changed', { detail: savedConfigRef.current })
+            );
+            // 配置页没有引擎在听这个广播，这里补一次，避免「实时预览」的风格残留下来
+            const p = readParams(savedConfigRef.current);
+            applyCardStyle(p.style, p.blur, p.opacity);
+        }
+        setShowPreview(false);
+        setShowGlobalConfig(false);
+    };
+
     // 保存全局配置
     const handleSaveGlobalConfig = async () => {
         try {
             setSaving(true);
             await configApi.setGlobalConfig(globalConfig);
+            savedConfigRef.current = globalConfig; // 保存成功 → 更新快照，关闭时不再还原
+            setShowPreview(false);
             setShowGlobalConfig(false);
         } catch (error) {
             console.error('保存全局配置失败:', error);
@@ -134,12 +285,17 @@ function GlobalConfig({ setShowGlobalConfig }) {
     };
 
     const { t } = useLanguage();
+    // 当前卡片风格（决定显示哪一组参数）
+    const currentStyle = globalConfig.cardStyle || 'liquid';
+    const currentStyleLabel = t(
+        (CARD_STYLE_OPTIONS.find((o) => o.id === currentStyle) || CARD_STYLE_OPTIONS[0]).labelKey
+    );
     const fileInputRef = useRef(null);
     const darkModeFileInputRef = useRef(null);
 
     return (
         <>
-            <div className="global-config-modal-overlay" onClick={() => setShowGlobalConfig(false)} />
+            <div className="global-config-modal-overlay" onClick={closeModal} />
             <div className="global-config-modal">
                 {/* 标题固定在顶部，不随设置内容滚动 */}
                 <div className="global-config-modal-header">
@@ -186,6 +342,12 @@ function GlobalConfig({ setShowGlobalConfig }) {
                                 {t('fields.upload')}
                             </button>
                             <button
+                                className="upload-button"
+                                onClick={() => setPickerFor('backgroundImage')}
+                            >
+                                {t('fields.pickAttachment')}
+                            </button>
+                            <button
                                 className="reset-button"
                                 onClick={() => setGlobalConfig({
                                     ...globalConfig,
@@ -196,7 +358,9 @@ function GlobalConfig({ setShowGlobalConfig }) {
                             </button>
                         </div>
                     </div>
-                    
+
+                    <p className="global-config-webm-hint">{t('config.backgroundWebmHint')}</p>
+
                     <div className="global-config-form-item">
                         <label>{t('config.darkModeBackgroundImage')}</label>
                         <div className="image-input-group">
@@ -232,6 +396,12 @@ function GlobalConfig({ setShowGlobalConfig }) {
                                 {t('fields.upload')}
                             </button>
                             <button
+                                className="upload-button"
+                                onClick={() => setPickerFor('darkModeBackgroundImage')}
+                            >
+                                {t('fields.pickAttachment')}
+                            </button>
+                            <button
                                 className="reset-button"
                                 onClick={() => setGlobalConfig({
                                     ...globalConfig,
@@ -247,6 +417,18 @@ function GlobalConfig({ setShowGlobalConfig }) {
                     
 
                     </Section>
+
+                    {/* 从「附件管理」里挑一个已上传的文件当背景 */}
+                    <AttachmentManagerModal
+                        open={pickerFor !== null}
+                        onClose={() => setPickerFor(null)}
+                        onPick={(it) => {
+                            if (pickerFor) {
+                                setGlobalConfig((c) => ({ ...c, [pickerFor]: it.url }));
+                            }
+                            setPickerFor(null);
+                        }}
+                    />
 
                     {/* 下拉面板 */}
                     <Section title={t('config.drawerSettings')} collapsed={collapsed.drawer} onToggle={() => toggleSection('drawer')}>
@@ -320,44 +502,108 @@ function GlobalConfig({ setShowGlobalConfig }) {
                         />
                     </div>
 
-                    <div className="global-config-form-item">
-                        <label>{t('config.drawerBlur')}</label>
-                        <input
-                            type="number"
-                            min="0"
-                            max="40"
-                            value={globalConfig.drawerBlur}
-                            onChange={(e) => setGlobalConfig({ ...globalConfig, drawerBlur: e.target.value })}
-                            placeholder="12"
-                        />
-                    </div>
+                    {/* 面板本身的毛玻璃 / 背景透明度（只作用于下拉面板，
+                        里面卡片的外观走「卡片风格」那一套） */}
+                    <LgSlider
+                        label={t('config.drawerOpacity')}
+                        hint={t('config.drawerOpacityHint')}
+                        field={DRAWER_FIELDS[0]}
+                        value={globalConfig.drawerOpacity}
+                        onChange={(v) => setGlobalConfig({ ...globalConfig, drawerOpacity: v })}
+                    />
 
-                    <div className="global-config-form-item">
-                        <label>{t('config.drawerOpacity')}：{globalConfig.drawerOpacity === '' || globalConfig.drawerOpacity == null ? '0.6' : globalConfig.drawerOpacity}</label>
-                        <Slider
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            value={globalConfig.drawerOpacity === '' || globalConfig.drawerOpacity == null ? 0.6 : Number(globalConfig.drawerOpacity)}
-                            onChange={(v) => setGlobalConfig({ ...globalConfig, drawerOpacity: v })}
-                        />
-                    </div>
+                    <LgSlider
+                        label={t('config.drawerBlur')}
+                        hint={t('config.drawerBlurHint')}
+                        field={DRAWER_FIELDS[1]}
+                        value={globalConfig.drawerBlur}
+                        onChange={(v) => setGlobalConfig({ ...globalConfig, drawerBlur: v })}
+                    />
 
                     </Section>
 
-                    {/* 卡片背景透明度 */}
-                    <Section title={t('config.cardOpacityTitle')} collapsed={collapsed.cardOpacity} onToggle={() => toggleSection('cardOpacity')}>
+                    {/* 卡片风格：点击切换 */}
+                    <Section title={t('config.cardStyleTitle')} collapsed={collapsed.cardStyle} onToggle={() => toggleSection('cardStyle')}>
+
+                    <div className="lg-style-options">
+                        {CARD_STYLE_OPTIONS.map((o) => {
+                            const active = (globalConfig.cardStyle || 'liquid') === o.id;
+                            return (
+                                <button
+                                    key={o.id}
+                                    type="button"
+                                    className={`lg-style-option ${active ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setGlobalConfig({ ...globalConfig, cardStyle: o.id });
+                                        setShowPreview(true);
+                                    }}
+                                >
+                                    <span className="lg-style-name">
+                                        {active && <Icon path={mdiCheck} size={14} />}
+                                        {t(o.labelKey)}
+                                    </span>
+                                    <span className="lg-style-desc">{t(o.descKey)}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="hint">{t('config.cardStyleHint')}</div>
+
+                    {/* 下面直接就是「当前这个风格」的参数，不再单独开一个下拉分区 */}
+                    <div className="lg-style-divider" />
+
+                    {currentStyle === 'liquid' ? (
+                        <>
+                            <div className="hint">
+                                {supportsRefraction() ? t('config.liquidGlassOnlyHint') : t('config.lgUnsupported')}
+                            </div>
+                            {LG_FIELDS.map((f) => (
+                                <LgSlider
+                                    key={f.key}
+                                    label={t(`config.${f.key}`)}
+                                    hint={t(`config.${f.key}Hint`)}
+                                    field={f}
+                                    value={globalConfig[f.key]}
+                                    onChange={(n) => setGlobalConfig({ ...globalConfig, [f.key]: n })}
+                                />
+                            ))}
+                        </>
+                    ) : (
+                        <>
+                            {/* 实色不需要模糊，所以不给它模糊滑块 */}
+                            {currentStyle !== 'solid' && (
+                                <LgSlider
+                                    label={t('config.lgBlur')}
+                                    hint={t('config.styleBlurHint')}
+                                    field={fieldByKey('lgBlur')}
+                                    value={globalConfig.lgBlur}
+                                    onChange={(n) => setGlobalConfig({ ...globalConfig, lgBlur: n })}
+                                />
+                            )}
+                            <LgSlider
+                                label={t('config.lgOpacity')}
+                                hint={t('config.lgOpacityHint')}
+                                field={fieldByKey('lgOpacity')}
+                                value={globalConfig.lgOpacity}
+                                onChange={(n) => setGlobalConfig({ ...globalConfig, lgOpacity: n })}
+                            />
+                        </>
+                    )}
+
+                    </Section>
+
+                    {/* 卡片特效（「卡片背景透明度」滑块已移除 —— 统一走液态玻璃风格） */}
+                    <Section title={t('config.cardEffectsTitle')} collapsed={collapsed.cardOpacity} onToggle={() => toggleSection('cardOpacity')}>
 
                     <div className="global-config-form-item">
-                        <label>{t('config.cardOpacity')}：{globalConfig.cardOpacity === '' || globalConfig.cardOpacity == null ? '1' : globalConfig.cardOpacity}</label>
-                        <Slider
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            value={globalConfig.cardOpacity === '' || globalConfig.cardOpacity == null ? 1 : Number(globalConfig.cardOpacity)}
-                            onChange={(v) => setGlobalConfig({ ...globalConfig, cardOpacity: v })}
-                        />
-                        <div className="hint">{t('config.cardOpacityHint')}</div>
+                        <label>{t('config.cardRipple')}</label>
+                        <div className="switch-group">
+                            <Switch
+                                checked={globalConfig.cardRipple !== false}
+                                onChange={(checked) => setGlobalConfig({ ...globalConfig, cardRipple: checked })}
+                            />
+                        </div>
+                        <div className="hint">{t('config.cardRippleHint')}</div>
                     </div>
 
                     </Section>
@@ -394,6 +640,17 @@ function GlobalConfig({ setShowGlobalConfig }) {
 
                     {/* 消息通知 */}
                     <Section title={t('config.notifySettings')} collapsed={collapsed.notify} onToggle={() => toggleSection('notify')}>
+
+                    <div className="global-config-form-item">
+                        <label>{t('config.notifyEnabled')}</label>
+                        <div className="switch-group">
+                            <Switch
+                                checked={globalConfig.notifyEnabled !== false}
+                                onChange={(checked) => setGlobalConfig({ ...globalConfig, notifyEnabled: checked })}
+                            />
+                        </div>
+                        <div className="hint">{t('config.notifyEnabledHint')}</div>
+                    </div>
 
                     <div className="global-config-form-item">
                         <label>{t('config.notifyPosition')}</label>
@@ -590,8 +847,10 @@ function GlobalConfig({ setShowGlobalConfig }) {
                                     drawerOpacity: '',
                                     drawerBlur: '',
                                     cardOpacity: '',
+                                    cardRipple: true,
                                     cardTitleHeight: '',
                                     cardTitleFontSize: '',
+                                    notifyEnabled: true,
                                     notifyPosition: 'top-right',
                                     notifyDuration: '',
                                     notifyWidth: '',
@@ -603,7 +862,17 @@ function GlobalConfig({ setShowGlobalConfig }) {
                                     notifyImageMaxSize: '',
                                     notifyImageTimeout: '',
                                     notifySaveImages: false,
-                                    amapKey: ''
+                                    amapKey: '',
+                                    cardStyle: 'liquid',
+                                    lgEnabled: true,
+                                    lgOpacity: '',
+                                    lgBlur: '',
+                                    lgScaleRatio: '',
+                                    lgGlassThickness: '',
+                                    lgBezelWidth: '',
+                                    lgRefractiveIndex: '',
+                                    lgSpecularOpacity: '',
+                                    lgSpecularSaturation: ''
                                 });
                             }}
                         >
@@ -625,7 +894,7 @@ function GlobalConfig({ setShowGlobalConfig }) {
                         >
                             {t('config.reinitialize')}
                         </button>
-                        <button className="cancel" onClick={() => setShowGlobalConfig(false)}>
+                        <button className="cancel" onClick={closeModal}>
                             {t('config.cancel')}
                         </button>
                         <button className="save" onClick={handleSaveGlobalConfig} disabled={saving}>
@@ -641,6 +910,31 @@ function GlobalConfig({ setShowGlobalConfig }) {
                     </div>
                 </div>
             </div>
+
+            {/* 预览小窗：点了「卡片风格」里的某个风格才弹出来，贴在弹窗右边。
+                预览卡走的是和真实卡片同一套 CSS（`.react-grid-item > div, .lg-preview-card`），
+                所以风格 / 模糊 / 透明度 / 折射改了都能立刻看出来。 */}
+            {showPreview && (
+                <aside className="lg-preview-window">
+                    <div className="lg-preview-window-header">
+                        <span>{t('config.lgPreviewHint')} · {currentStyleLabel}</span>
+                        <button
+                            type="button"
+                            className="lg-preview-close"
+                            title={t('config.cancel')}
+                            onClick={() => setShowPreview(false)}
+                        >
+                            ×
+                        </button>
+                    </div>
+                    <div className="lg-preview">
+                        <div className="lg-preview-bg" />
+                        <div className="lg-preview-card" ref={lgPreviewRef}>
+                            {t('config.lgPreview')}
+                        </div>
+                    </div>
+                </aside>
+            )}
         </>
     );
 }

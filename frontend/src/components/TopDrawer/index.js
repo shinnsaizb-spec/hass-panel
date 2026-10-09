@@ -7,6 +7,7 @@ import 'react-resizable/css/styles.css';
 import { configApi } from '../../utils/api';
 import { useLanguage } from '../../i18n/LanguageContext';
 import ScaledCard from '../ScaledCard';
+import GroupTabs from '../GroupTabs';
 import './style.css';
 
 // 不使用 WidthProvider：它会在面板关闭/挂载瞬间测到一个异常宽度（或 0），
@@ -137,7 +138,7 @@ function arrangeLayoutsByRows(layouts) {
   return next;
 }
 
-function TopDrawer({ cards, renderCard, settings }) {
+function TopDrawer({ cards, renderCard, settings, groups, activeGroup, onGroupChange, hasDrawerCards }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -365,27 +366,33 @@ function TopDrawer({ cards, renderCard, settings }) {
     setOpen(false);
   }, [cancelEdit]);
 
-  if (!cards || cards.length === 0) return null;
+  // 是否渲染整个面板：只要「还存在任何 inDrawer 卡片」就渲染。
+  // 注意不能用 cards.length —— cards 已经按当前分组过滤过了，某个分组恰好没有
+  // 下拉屏卡片时如果直接 return null，面板（连同导航栏里的分组切换）会整个消失，
+  // 用户就再也切不回别的分组了。这时改为显示空提示，导航栏保持可用。
+  const showPanel =
+    hasDrawerCards === undefined ? !!(cards && cards.length) : !!hasDrawerCards;
+  if (!showPanel) return null;
 
   const s = settings || {};
-  const drawerBlur =
-    s.drawerBlur != null && String(s.drawerBlur).trim() !== ''
-      ? `${String(s.drawerBlur).replace('px', '').trim()}px`
-      : '12px';
-  const drawerOpacity =
+
+  // 面板的毛玻璃模糊 / 背景透明度（全局配置 → 下拉面板）。
+  // ⚠️ 这两个值只在面板上生效，卡片本身的外观统一走「卡片风格」。
+  const drawerBgAlpha =
     s.drawerOpacity != null && String(s.drawerOpacity).trim() !== ''
-      ? String(s.drawerOpacity).trim()
-      : '0.6';
+      ? clamp(parseNum(s.drawerOpacity, 0.6), 0, 1)
+      : null;
+  const drawerBlurPx =
+    s.drawerBlur != null && String(s.drawerBlur).trim() !== ''
+      ? clamp(parseNum(s.drawerBlur, 12), 0, 60)
+      : null;
 
   // left 没单独设过就按当前宽度居中；设过就用设的
   // （这样拖右边缘时是往右长，而不是从中心往两边对称缩放）
   const leftPct = size.left != null ? size.left : (100 - size.width) / 2;
 
-  // 卡片玻璃透明度：和主页用同一个值，保证两边卡片观感一致
-  const cardGlassAlpha =
-    s.cardOpacity != null && String(s.cardOpacity).trim() !== ''
-      ? String(s.cardOpacity).trim()
-      : '0.6';
+  // 卡片玻璃透明度已移除（统一走液态玻璃风格）。
+
   // 卡片标题的全局设置（标题高度 / 字体大小）
   const cardTitleH =
     s.cardTitleHeight != null && String(s.cardTitleHeight).trim() !== ''
@@ -410,12 +417,11 @@ function TopDrawer({ cards, renderCard, settings }) {
     '--drawer-width': `${size.width}%`,
     '--drawer-max-height': `${size.height}%`,
     '--drawer-left': `${leftPct}%`,
-    '--drawer-blur': drawerBlur,
-    '--drawer-bg-alpha': drawerOpacity,
-    '--card-glass-alpha': cardGlassAlpha,
   };
   if (cardTitleH) panelStyle['--card-title-h'] = cardTitleH;
   if (cardTitleFont) panelStyle['--card-title-font'] = cardTitleFont;
+  if (drawerBgAlpha != null) panelStyle['--drawer-bg-alpha'] = String(drawerBgAlpha);
+  if (drawerBlurPx != null) panelStyle['--drawer-blur'] = `${drawerBlurPx}px`;
 
   // 卡片内容缩放比 = 当前格子尺寸 / 默认格子尺寸。
   // 默认格子 = 宽 DEFAULT_CARD_W、高 DEFAULT_CARD_H 行（和 buildLayouts 的默认一致）。
@@ -475,6 +481,14 @@ function TopDrawer({ cards, renderCard, settings }) {
             )}
           </div>
 
+          {/* 分组切换：从主页顶栏移到这里；切换的是「显示哪一组的卡片」 */}
+          <GroupTabs
+            groups={groups || []}
+            activeGroup={activeGroup}
+            onGroupChange={onGroupChange}
+            isEditing={false}
+          />
+
           {/* 编辑模式下这行既是提示，也是拖动整块面板的把手 */}
           {editMode && (
             <div className="top-drawer-nav-hint" onMouseDown={(e) => startDrag(e, 'move')}>
@@ -495,6 +509,10 @@ function TopDrawer({ cards, renderCard, settings }) {
 
         {/* 卡片区 */}
         <div className="top-drawer-content" ref={contentRef}>
+          {/* 当前分组没有下拉屏卡片时的提示（导航栏仍可用，方便切回别的分组） */}
+          {(!cards || cards.length === 0) && (
+            <div className="top-drawer-empty">{t('config.drawerGroupEmpty')}</div>
+          )}
           {/* 关键：只有在面板打开(open)且卡片区已测得真实宽度(gridWidth>0)时才挂载网格。
              避免 WidthProvider 在面板关闭/挂载瞬间测到异常宽度、把卡片重生成成
              默认 h:1/w:1 的退化布局（那正是卡片塌成一条线的根因）。 */}
@@ -532,7 +550,7 @@ function TopDrawer({ cards, renderCard, settings }) {
                           <Icon path={mdiDrag} size={14} />
                         </div>
                       )}
-                      <ScaledCard sx={sx} sy={sy} noScale={NO_SCALE_CARD_TYPES.has(card.type)}>
+                      <ScaledCard sx={sx} sy={sy} noScale={NO_SCALE_CARD_TYPES.has(card.type)} scaleLock={card.scaleLock}>
                         {renderCard(card)}
                       </ScaledCard>
                     </div>

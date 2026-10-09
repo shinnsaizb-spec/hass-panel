@@ -41,6 +41,8 @@
   min-height: var(--card-title-h, 54px) !important;
   flex: 0 0 var(--card-title-h, 54px) !important;
   box-sizing: border-box;
+  /* 标题栏里有些元素（如监控卡片的播放键）是绝对定位居中的，需要这里当定位基准 */
+  position: relative;
 }
 
 .card-header h3 {
@@ -233,6 +235,35 @@
   padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 
+/* 切换分组时网格淡入一下，把「瞬间切换」变丝滑（两个类名交替以重新触发动画）。
+   只动 opacity，不碰 transform/布局，避免影响 react-grid-layout 的定位。
+
+   ⚠️ 绝对不要写 `animation-fill-mode: both` / `forwards`！
+   `.layout` 一旦保留动画的「填充状态」，就等于长期带着一个 opacity 动画效果 ——
+   在 Chrome 里这会把它变成 backdrop-root，使卡片（`.react-grid-item > div`）的
+   `backdrop-filter` **永久失效**，表现为「切分组后卡片一下变透明、不再磨砂」，
+   而刷新页面又正常（刷新时没有 group-swap-* 类）。已用真实浏览器实测复现/验证：
+   去掉 both 后，动画结束（0.24s）模糊立即恢复，连续切换分组也稳定。 */
+.layout.group-swap-0,
+.layout.group-swap-1 {
+  animation: groupSwapIn 0.24s ease;
+}
+
+@keyframes groupSwapIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 分组切换只隐藏非当前组卡片，不卸载 React 子树：保留地图/图表/摄像头状态与玻璃合成层。 */
+.layout .react-grid-item.home-group-hidden {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 .react-grid-item {
   transition: all 200ms ease;
   transition-property: left, top;
@@ -241,18 +272,14 @@
   box-sizing: border-box;
 }
 
+/* 卡片外观（玻璃底 / 边框 / 阴影 / 毛玻璃 / 圆角）统一由 theme/liquid-glass.css 控制，
+   这里只留布局相关的属性，避免两处定义打架。 */
 .react-grid-item > div {
   flex: 1;
   width: 100% !important;
   height: 100% !important;
   margin: 0 !important;
-  border-radius: var(--border-radius-medium);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   overflow: visible;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, var(--card-glass-alpha, 0.6));
-  border: 1px solid rgba(255, 255, 255, 0.18);
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   position: relative;
 }
@@ -274,7 +301,8 @@
    用 ::after 铺两层「同心圆环」渐变，hover 时让 background-size 从 0 涨到 170%/240%，
    环就从中心向外扩散，像水波；背景天然被元素裁剪，不会溢出卡片。
    z-index:-1 让它压在卡片文字下面、玻璃底上面（卡片有 backdrop-filter，会形成层叠上下文）。 */
-.react-grid-item > div::after {
+/* 由 body.ripple-on 控制开关：全局配置关掉水波特效时，body 上没有这个类，涟漪完全不生效 */
+body.ripple-on .react-grid-item > div::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -294,7 +322,7 @@
     background-position 0.18s ease-out;
 }
 
-.react-grid-item > div:hover::after {
+body.ripple-on .react-grid-item > div:hover::after {
   opacity: 1;
   background-size: 150% 150%, 220% 220%;
 }
@@ -304,15 +332,8 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
-[data-theme='dark'] .react-grid-item > div {
-  background: rgba(20, 20, 20, var(--card-glass-alpha, 0.6));
-  border: 1px solid rgba(100, 100, 100, 0.18);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
+/* 暗色下卡片外观同样由 theme/liquid-glass.css 的 [data-theme='dark'] 变量控制。 */
 
-[data-theme='dark'] .react-grid-item > div::before {
-  background: linear-gradient(180deg, rgba(100, 100, 100, 0.2), rgba(50, 50, 50, 0));
-}
 
 [data-theme='dark'] .react-grid-item > div:hover {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
@@ -1031,4 +1052,101 @@ div {
   .content {
     width: 100%;
   }
+}
+
+/* ===== 编辑模式：一键排列 =====
+   和「保存」圆钮同款造型，固定在它正上方（保存键 bottom:80 + 高度 56 + 间距 12）。
+   手机上保存键是 bottom:150，所以这里相应下移到 218。 */
+.arrange-button {
+  position: fixed;
+  bottom: 148px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s;
+  z-index: 100;
+}
+
+.arrange-button:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  .arrange-button {
+    bottom: 218px;
+    right: 10px;
+  }
+}
+
+/* 「卡片管理」里被禁用的卡片：显示占位，不渲染真实组件（顺带省性能）。
+   外层 .react-grid-item > div 的玻璃底/边框/圆角会自动套上来，这里只管内容。 */
+.card-disabled-placeholder {
+  height: 100%;
+  min-height: 80px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.card-disabled-placeholder .cdp-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-disabled-placeholder .cdp-hint {
+  font-size: 12px;
+}
+/* 编辑模式下：「锁定大小」锁按钮。
+   缩放把手保持原位（卡片右下角 right:4px / bottom:4px，宽 18px），
+   锁按钮放在**它右边、也就是卡片右下角外侧**。 */
+.layout.editing .card-lock-btn {
+  position: absolute;
+  right: -22px;
+  bottom: 4px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-card-bg, rgba(255, 255, 255, 0.88));
+  color: var(--color-text-secondary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 0.18s ease, color 0.18s ease;
+}
+
+.layout.editing .card-lock-btn:hover {
+  opacity: 1;
+}
+
+/* 上了锁（内容不随卡片缩放）时高亮 */
+.layout.editing .card-lock-btn.active {
+  color: var(--color-primary);
+  opacity: 1;
 }

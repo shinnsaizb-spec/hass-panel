@@ -230,3 +230,10 @@
 [data-theme='dark'] .map-card-body .amap-copyright {
   opacity: 0.6;
 }
+
+/* 隐藏标题栏时给地图补一段上边距。
+   标题栏在的时候，那 16px 的内边距就是地图和卡片上边缘之间的间隙；隐藏之后地图会
+   直接顶到卡片顶边、被圆角切掉一块，看起来「没留缝」。这里补回来。 */
+.base-card--no-header .map-card-body {
+  margin-top: var(--spacing-md);
+}

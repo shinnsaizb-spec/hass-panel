@@ -1,0 +1,179 @@
+/* ==========================================================================
+   设备电量卡片
+   --------------------------------------------------------------------------
+   ⚠️ `.base-card .bt-body` 用 `!important`：主页全局有
+      `.base-card > div:not(.card-header) { overflow: visible }`（优先级更高），
+      不加的话卡片内部滚动失效、内容会溢出卡片。
+   ========================================================================== */
+
+.base-card .bt-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto !important;
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+/* ---------- 单台设备一行 ----------
+   按需求固定比例：左 42.5%（图标 + 名称） / 中 15%（空） / 右 42.5%（电量 + 电池图标）。
+   两边各 42.5%，剩下的 15% 就是中间的空隙。 */
+.bt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  min-width: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.bt-left {
+  flex: 0 0 42.5%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.bt-right {
+  flex: 0 0 42.5%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.bt-row:last-child {
+  border-bottom: none;
+}
+
+.bt-device-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: var(--color-text-secondary);
+}
+
+/* 自定义上传的图片图标 */
+.bt-device-icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.bt-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bt-pct {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* ---------- 电池图标 ---------- */
+.bt-icon {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 16px;
+  color: var(--color-text-secondary);
+}
+
+.bt-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.bt-icon-body {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.bt-icon-cap {
+  fill: currentColor;
+}
+
+.bt-icon-fill {
+  fill: currentColor;
+  transition: width 0.4s ease, fill 0.3s ease;
+}
+
+/* 低电量：图标内部填充变红 */
+.bt-icon.low .bt-icon-fill {
+  fill: var(--color-error, #ef5350);
+}
+
+.bt-icon.low .bt-icon-body {
+  stroke: var(--color-error, #ef5350);
+}
+
+/* 充电中：填充变绿 + 一个闪电角标 + 呼吸光效 */
+.bt-icon.charging {
+  color: var(--color-success, #4caf50);
+}
+
+.bt-icon.charging .bt-icon-fill {
+  fill: var(--color-success, #4caf50);
+}
+
+.bt-bolt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  color: var(--color-success, #4caf50);
+  animation: bt-bolt-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bt-bolt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scale(0.82);
+  }
+}
+
+/* ---------- 空态 ---------- */
+.bt-empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-size: 13px;
+}
+
+.bt-empty-hint {
+  font-size: 11px;
+  opacity: 0.8;
+  line-height: 1.5;
+}

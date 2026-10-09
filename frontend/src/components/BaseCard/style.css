@@ -26,3 +26,10 @@
   pointer-events: none;
   user-select: none;
 } 
+/* 隐藏标题栏时把卡片裁成四圆角。
+   卡片自己的圆角在根元素（.react-grid-item > div）上，里面的内容如果贴边、又带自己的
+   背景，就会把圆角盖成直角；这里裁一下，四个角就一直是圆的。
+   ⚠️ 只在「没有标题栏」时裁，避免影响需要向外溢出的卡片（下拉、浮层等）。 */
+.base-card.base-card--no-header {
+  overflow: hidden;
+}

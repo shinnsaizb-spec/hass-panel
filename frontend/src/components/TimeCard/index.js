@@ -3,14 +3,12 @@ import { mdiClockOutline } from '@mdi/js';
 import { useLanguage } from '../../i18n/LanguageContext';
 import BaseCard from '../BaseCard';
 import dayjs from 'dayjs';
-import Lunar from 'lunar-javascript';
 import './style.css';
 
 function TimeCard({config}) {
   const { timeFormat, dateFormat, title, titleVisible } = config;
   const { t } = useLanguage();
   const [currentTime, setCurrentTime] = useState(dayjs());
-  const [lunarDate, setLunarDate] = useState('');
   const [weekday, setWeekday] = useState('');
   useEffect(() => {
     const updateTime = () => {
@@ -19,9 +17,8 @@ function TimeCard({config}) {
       const weekday = now.format('dddd');
 
       setWeekday(t(`weekday.${weekday}`));
-      const lunar = Lunar.Lunar.fromDate(now.toDate());
-      const yearZhi = lunar.getYearShengXiao(); // 获取生肖
-      setLunarDate(`${lunar.getYearInGanZhi()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}(${yearZhi}年)`);
+      // 农历已去掉：它每秒都要跑一遍 Lunar.fromDate（开销不小），而农历一天才变一次，
+      // 且多数人并不看。去掉后每秒只剩一次时间刷新。
     };
 
     updateTime();
@@ -47,9 +44,6 @@ function TimeCard({config}) {
           <span className="weekday">
             {weekday}
           </span>
-        </div>
-        <div className="lunar-date">
-          {lunarDate}
         </div>
       </div>
     </BaseCard>

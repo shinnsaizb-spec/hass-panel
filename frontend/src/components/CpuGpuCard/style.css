@@ -1,0 +1,222 @@
+/* ==========================================================================
+   CPU / GPU 卡片（CPU + GPU 在一张卡里，版式尽量紧凑）
+   --------------------------------------------------------------------------
+   ⚠️ `.base-card .cgc-body` 用 `!important`：主页全局有
+      `.base-card > div:not(.card-header) { overflow: visible }`（优先级更高），
+      不加的话卡片内部滚动失效、内容会溢出卡片。
+   ========================================================================== */
+
+.base-card .cgc-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto !important;
+  padding: 10px 12px 12px;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+}
+
+/* CPU / GPU 两块：默认上下排；够宽（both）时并排，中间一条分隔线 */
+.cgc-halves {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cgc-halves.both {
+  flex-direction: row;
+  gap: 12px;
+}
+
+.cgc-halves.both > .cgc-half {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.cgc-halves.both > .cgc-half + .cgc-half {
+  padding-left: 12px;
+  position: relative;
+}
+
+/* 中间那条分隔线：只占卡片高度的 60%（上下各留 20%），不要顶天立地 */
+.cgc-halves.both > .cgc-half + .cgc-half::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.cgc-half {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* ---------- 顶部：图标 + CPU/GPU + 设备名 ---------- */
+.cgc-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cgc-head-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--color-background-secondary, rgba(127, 127, 127, 0.1));
+}
+
+.cgc-head-text {
+  min-width: 0;
+}
+
+.cgc-head-kind {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.4px;
+}
+
+.cgc-head-model {
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ---------- 主体：环形 + 2×2 指标 ---------- */
+.cgc-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 指标放在占用圈「下方」（参考图的排法） */
+.cgc-main.below {
+  /* 占用圈的直径，下面指标行的宽度也以它为准 */
+  --cgc-ring: min(100%, 142px);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.cgc-main.below .cgc-ring {
+  width: var(--cgc-ring);
+  max-width: var(--cgc-ring);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+.cgc-main.below .cgc-metrics {
+  /* 和占用圈同宽、左右各多出 5px —— 所以最左和最右那两个指标会「刚好超过圈一点点」。
+     两列贴两端（space-between），中间用 column-gap 兜一个最小值，避免挤在一起。 */
+  width: calc(var(--cgc-ring) + 10px);
+  margin: 0 auto;
+  grid-template-columns: max-content max-content;
+  justify-content: space-between;
+  column-gap: 8px;
+}
+
+.cgc-ring {
+  position: relative;
+  flex: 0 0 auto;
+  /* 默认尺寸对齐「电脑监控」卡片的圈（66px） */
+  width: 66px;
+  height: 66px;
+}
+
+.cgc-ring svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cgc-ring-bg {
+  fill: none;
+  stroke: rgba(127, 127, 127, 0.22);
+  stroke-width: 9;
+}
+
+.cgc-ring-fg {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease, stroke 0.3s ease;
+}
+
+.cgc-ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cgc-metrics {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 6px;
+}
+
+.cgc-metric {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cgc-metric-icon {
+  flex: 0 0 auto;
+  display: flex;
+  color: var(--color-text-secondary);
+}
+
+.cgc-metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cgc-metric-unit {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* ---------- 空态 ---------- */
+.cgc-empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-size: 13px;
+}
+
+.cgc-empty-hint {
+  font-size: 11px;
+  opacity: 0.8;
+  line-height: 1.5;
+}

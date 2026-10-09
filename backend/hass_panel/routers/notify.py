@@ -71,6 +71,20 @@ def _limit(name: str, default: int) -> int:
         return default
 
 
+def _notify_enabled() -> bool:
+    """通知总开关（globalConfig.notifyEnabled，默认开）。
+
+    关掉后 webhook 直接不接收：不落库、不广播，调用方拿到 200 + "notify disabled"，
+    这样 Home Assistant / Node-RED 那些自动化不会因为 4xx 而报错。
+    """
+    raw = _read_global_config().get("notifyEnabled")
+    if raw is None:
+        return True
+    if isinstance(raw, bool):
+        return raw
+    return str(raw).strip().lower() not in ("false", "0", "off", "no", "")
+
+
 def _make_item(title: str, message: str, level: str, fmt: str = "text", persist: bool = False) -> dict:
     return {
         "id": uuid.uuid4().hex,
@@ -205,6 +219,8 @@ async def notify_webhook_post(payload: NotifyPayload, request: Request):
     token = request.query_params.get("token") or request.headers.get("X-Notify-Token") or ""
     if NOTIFY_TOKEN and token != NOTIFY_TOKEN:
         return generate_resp(code=401, error="invalid token")
+    if not _notify_enabled():
+        return generate_resp(data=None, message="notify disabled")
     item = _make_item(
         payload.title, payload.message, payload.level, payload.format, payload.persist
     )
@@ -219,6 +235,8 @@ async def notify_webhook_get(request: Request):
     token = params.get("token") or ""
     if NOTIFY_TOKEN and token != NOTIFY_TOKEN:
         return generate_resp(code=401, error="invalid token")
+    if not _notify_enabled():
+        return generate_resp(data=None, message="notify disabled")
     persist_raw = (params.get("persist") or "").strip().lower()
     item = _make_item(
         params.get("title", ""),

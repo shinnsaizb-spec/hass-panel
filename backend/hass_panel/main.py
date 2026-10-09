@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from hass_panel.core.middlewares import proc_custom_exception
-from hass_panel.routers import update, user_config, common, auth, users, hass, daily_quote, onvif_ctl, notify, plugins
+from hass_panel.routers import update, user_config, common, auth, users, hass, daily_quote, onvif_ctl, notify, plugins, floorplan
 from hass_panel.core.initial import lifespan
 from hass_panel.utils.config import cfg
 from loguru import logger
@@ -21,7 +21,8 @@ ROUTERS = [
     daily_quote.router,
     onvif_ctl.router,
     notify.router,
-    plugins.router
+    plugins.router,
+    floorplan.router
 ]
 
 

@@ -156,6 +156,81 @@ def rescan_plugins():
     return {"plugins": enabled, "count": len(enabled)}
 
 
+# ------------------------------------------------------------------------------
+# 卡片显示名覆盖
+# ------------------------------------------------------------------------------
+# 「添加卡片」列表里的名字，内置卡片来自 i18n、插件卡片来自 manifest。
+# 这里提供一张「显示名覆盖表」，让用户能给**任意卡片**（内置 + 插件）起自定义名字。
+# 与插件状态同存一个文件，避免再多一个配置文件。
+# 注意：这些路由要定义在 /{pid} 之类通配路由**之前**，否则会被当成插件 id。
+
+@router.get("/card-names")
+def list_card_names():
+    """返回卡片显示名覆盖表：{ "<cardType>": "自定义名" }。"""
+    state = _load_state()
+    names = state.get("cardNames")
+    return {"names": names if isinstance(names, dict) else {}}
+
+
+@router.post("/card-names/{card_type}", dependencies=[Depends(get_current_user)])
+def rename_card(card_type: str, payload: dict):
+    """设置某张卡片的显示名；name 传空字符串则恢复默认（删除覆盖）。"""
+    if not card_type or "/" in card_type or "\\" in card_type or card_type in (".", ".."):
+        raise HTTPException(status_code=400, detail="非法的卡片类型")
+    name = str((payload or {}).get("name", "")).strip()
+    state = _load_state()
+    names = state.get("cardNames")
+    if not isinstance(names, dict):
+        names = {}
+    if name:
+        names[card_type] = name
+    else:
+        names.pop(card_type, None)
+    state["cardNames"] = names
+    _save_state(state)
+    return {"code": 200, "message": "已保存", "data": {"names": names}}
+
+
+# ------------------------------------------------------------------------------
+# 卡片启用 / 禁用（内置卡片与插件卡片通用）
+# ------------------------------------------------------------------------------
+# 禁用后：
+#   ① 不再出现在「添加卡片」列表里；
+#   ② 已经放在主页 / 下拉屏上的实例显示为「已禁用」占位（不再渲染真实组件）。
+# 插件卡片另有插件级的 enable/disable（整包启停），两者独立。
+
+@router.get("/card-disabled")
+def list_card_disabled():
+    """返回被禁用的卡片类型列表。"""
+    state = _load_state()
+    disabled = state.get("cardDisabled")
+    return {"disabled": disabled if isinstance(disabled, list) else []}
+
+
+@router.post("/card-disabled/{card_type}", dependencies=[Depends(get_current_user)])
+def set_card_disabled(card_type: str, payload: dict):
+    """启用 / 禁用一张卡片。body: {"disabled": true|false}"""
+    if not card_type or "/" in card_type or "\\" in card_type or card_type in (".", ".."):
+        raise HTTPException(status_code=400, detail="非法的卡片类型")
+    disabled = bool((payload or {}).get("disabled", True))
+    state = _load_state()
+    lst = state.get("cardDisabled")
+    if not isinstance(lst, list):
+        lst = []
+    if disabled:
+        if card_type not in lst:
+            lst.append(card_type)
+    else:
+        lst = [x for x in lst if x != card_type]
+    state["cardDisabled"] = lst
+    _save_state(state)
+    return {
+        "code": 200,
+        "message": "已禁用" if disabled else "已启用",
+        "data": {"disabled": lst},
+    }
+
+
 def _safe_extract(zf: zipfile.ZipFile, dest: Path) -> None:
     """解压 zip 到 dest，阻止路径穿越（zip slip）。"""
     dest_resolved = dest.resolve()

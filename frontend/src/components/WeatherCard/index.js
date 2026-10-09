@@ -99,7 +99,15 @@ const calculateClothingIndex = (temperature, humidity, windSpeed) => {
 function WeatherCard({config}) {
   const titleVisible = config.titleVisible;
   const { theme } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  // 「时钟」风格要显示实时时间。⚠️ 这个 hook 必须在下面的 try/catch 之前 ——
+  //    那个 try/catch 里有 return，hook 不能有条件执行。
+  const [now, setNow] = React.useState(() => new Date());
+  React.useEffect(() => {
+    if (config.style !== 'clock') return undefined;
+    const id = setInterval(() => setNow(new Date()), 20000);
+    return () => clearInterval(id);
+  }, [config.style]);
   const debugMode = localStorage.getItem('debugMode') === 'true';
   let weather = null;
   try {
@@ -199,6 +207,177 @@ function WeatherCard({config}) {
     weather.attributes.humidity || 50,
     weather.attributes.wind_speed || 0
   )(t);
+
+  // 天气状况文案：HA 给的是 clear-night / partlycloudy 这种英文标识，翻一下
+  const condText = (c) => {
+    const raw = String(c || '');
+    if (!raw) return '';
+    const key = `weather.conditions.${raw.replace(/-/g, '_')}`;
+    const v = t(key);
+    return v === key ? raw : v;
+  };
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const hhmm = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const hhmmss = `${hhmm}:${pad(now.getSeconds())}`;
+  // 中文环境：月用中文数字、日用阿拉伯数字（七月25日），星期单独一段（中间留间隔）
+  const CN_MONTH = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+  const CN_WEEK = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  const isZh = language === 'zh';
+  const dateMain = isZh
+    ? `${CN_MONTH[now.getMonth()]}月${now.getDate()}日`
+    : now.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
+  const weekdayText = isZh
+    ? CN_WEEK[now.getDay()]
+    : now.toLocaleDateString(undefined, { weekday: 'long' });
+  const location =
+    (config.location || '').trim() ||
+    (weather.attributes && weather.attributes.friendly_name) ||
+    '';
+
+  const first = forecastData[0] || null;
+  const low = first && first.templow != null ? Math.round(first.templow) : null;
+  const high =
+    first && first.temperature != null ? Math.round(first.temperature) : null;
+  const forecastKind = (weather.forecast && weather.forecast.type) || 'daily';
+
+  // ---------- 风格二：时钟风（大时间 + 日期 + 地点 + 天气一行） ----------
+  if (config.style === 'clock') {
+    return (
+      <BaseCard
+        title={config.title || t('cardTitles.weather')}
+        titleVisible={titleVisible}
+        icon={getWeatherIcon(weather.state)}
+      >
+        <div className="wc-clock">
+          <div className="wc-clock-time">{hhmm}</div>
+          <div className="wc-clock-date">
+            <span>{dateMain}</span>
+            <span className="wc-clock-weekday">{weekdayText}</span>
+          </div>
+          {location ? (
+            <div className="wc-clock-loc">
+              <Icon path={mdiMapMarker} size={13} />
+              <span>{location}</span>
+            </div>
+          ) : null}
+
+          {/* 下半区：左边天气图标（占一行），右边温度占 60% 高、下面「最低/最高 + 描述」占 35% 高 */}
+          <div className="wc-clock-bottom">
+            <span className="wc-clock-icon">
+              <Icon path={getWeatherIcon(weather.state)} size={34} />
+            </span>
+            <div className="wc-clock-right">
+              <div className="wc-clock-temp">
+                {temperature != null ? `${Math.round(temperature)}°C` : '--'}
+              </div>
+              <div className="wc-clock-sub">
+                {low != null && high != null ? (
+                  <span className="wc-clock-range">
+                    {low}° / {high}°
+                  </span>
+                ) : null}
+                <span className="wc-clock-cond">{condText(weather.state)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </BaseCard>
+    );
+  }
+
+  // ---------- 风格三：预报风（更新时间 + 逐小时 + 四个指标块） ----------
+  if (config.style === 'forecast') {
+    const hours = forecastData.slice(0, 5);
+    const windSpeed = weather.attributes.wind_speed;
+    const windUnit = weather.attributes.wind_speed_unit || 'm/s';
+    const uv = weather.attributes.uv_index;
+    const tiles = [
+      {
+        key: 'air',
+        label: t('weather.metrics.airQuality'),
+        value: aqi != null ? (typeof aqi === 'object' ? aqi.value ?? '--' : aqi) : '--',
+        extra: getAQIDescription(aqi),
+      },
+      {
+        key: 'humidity',
+        label: t('weather.metrics.humidity'),
+        value: humidity != null ? `${humidity}%` : '--',
+        extra: '',
+      },
+      {
+        key: 'wind',
+        label: t('weather.metrics.wind'),
+        value: windSpeed != null ? `${Math.round(windSpeed)}${windUnit}` : '--',
+        extra: '',
+      },
+      {
+        key: 'uv',
+        label: t('weather.uv'),
+        value: uv != null ? Math.round(uv) : '--',
+        extra: '',
+      },
+    ];
+
+    return (
+      <BaseCard
+        title={config.title || t('cardTitles.weather')}
+        titleVisible={titleVisible}
+        icon={getWeatherIcon(weather.state)}
+      >
+        <div className="wc-fc">
+          <div className="wc-fc-head">
+            <span className="wc-fc-title">{t('weather.condition')}</span>
+            <span className="wc-fc-updated">
+              <Icon path={mdiWeatherWindy} size={12} />
+              {t('weather.updated')}: {hhmmss}
+            </span>
+          </div>
+          <div className="wc-fc-unit">{t('weather.tempUnit')}</div>
+
+          <div className="wc-fc-hours">
+            <div className="wc-fc-hour">
+              <span className="wc-fc-hlabel">{t('weather.now')}</span>
+              <span className="wc-fc-hicon">
+                <Icon path={getWeatherIcon(weather.state)} size={22} />
+              </span>
+              <span className="wc-fc-htemp">
+                {temperature != null ? `${Math.round(temperature)}°` : '--'}
+              </span>
+            </div>
+            {hours.map((h, i) => {
+              const d = new Date(h.datetime);
+              const label =
+                forecastKind === 'hourly'
+                  ? `${pad(d.getHours())}:00`
+                  : `${d.getMonth() + 1}/${d.getDate()}`;
+              return (
+                <div className="wc-fc-hour" key={`${h.datetime}-${i}`}>
+                  <span className="wc-fc-hlabel">{label}</span>
+                  <span className="wc-fc-hicon">
+                    <Icon path={getWeatherIcon(h.condition)} size={22} />
+                  </span>
+                  <span className="wc-fc-htemp">
+                    {h.temperature != null ? `${Math.round(h.temperature)}°` : '--'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="wc-fc-tiles">
+            {tiles.map((x) => (
+              <div className="wc-fc-tile" key={x.key}>
+                <span className="wc-fc-tile-label">{x.label}</span>
+                <span className="wc-fc-tile-value">{x.value}</span>
+                {x.extra ? <span className="wc-fc-tile-extra">{x.extra}</span> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      </BaseCard>
+    );
+  }
 
   return (
     <BaseCard

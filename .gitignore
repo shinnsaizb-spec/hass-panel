@@ -44,3 +44,5 @@ node_modules/
 
 # 临时脚本
 backend/tmp_create_user.py
+# AI 助手的工作目录（记忆/日志），不进仓库
+.workbuddy-ai/

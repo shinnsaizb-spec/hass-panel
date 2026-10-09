@@ -174,3 +174,126 @@
   width: 100%;
   height: 100%;
 } 
+
+/* ===== 定格画面 / 卡片内播放 ===== */
+
+.camera-snap {
+  position: absolute;
+  inset: 0;
+  cursor: zoom-in;
+}
+
+.camera-live {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+
+.camera-live-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* 播放/停止按钮：规格照「消息通知」标题栏右侧那个图标按钮（.npro-btn）
+   —— 26×26、圆角 8px、透明底、次要文字色、图标 16。
+   ⚠️ 卡片右下角那个是压在画面上的，纯透明会看不见，所以单独给一层很淡的底。 */
+.camera-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  /* ⚠️ line-height:0 必须留着：内联 SVG 按文字基线排版会在下面留空隙 */
+  line-height: 0;
+}
+
+/* 图标尺寸由 <Icon size={16}> 直接给 svg 的 width/height 属性决定，
+   ⚠️ 这里千万别再写 width/height 百分比：按钮宽度是 auto 时，
+   百分比会和 aspect-ratio 撞成循环依赖，结果按钮被压扁、图标跑出框。 */
+.camera-play-btn svg {
+  display: block;
+  vertical-align: middle;
+}
+
+.camera-play-btn:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--color-text-primary);
+}
+
+.camera-play-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+/* 压在画面上的那个：补一层淡淡的底，不然在照片上看不见 */
+.camera-play-btn.corner {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 3;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--color-text-primary);
+  backdrop-filter: blur(4px);
+}
+
+.camera-play-btn.corner:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.camera-play-btn.corner.playing {
+  background: var(--color-error, #e24b4a);
+  color: #fff;
+}
+
+.camera-play-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.camera-play-btn.playing {
+  background: var(--color-error, #e24b4a);
+}
+
+/* 标题栏右侧的播放键（有标题时用这个位置） */
+/* 标题栏右侧的按钮组。
+   直接照「消息通知」卡片（.npro-actions）的写法：**就是个普通 flex 子项**，
+   靠标题栏自己的 align-items:center 居中 —— 26px 的按钮在 54px 标题栏里天然居中，
+   不需要任何绝对定位 / 负边距之类的技巧。 */
+.camera-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+/* 标题栏里的播放键：和「消息通知」的 .npro-btn 一模一样（26×26、圆角 8px、透明底） */
+.camera-play-btn.in-titlebar {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.camera-play-btn.in-titlebar:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--color-text-primary);
+}
+
+.camera-play-btn.in-titlebar.playing {
+  color: var(--color-error, #e24b4a);
+}

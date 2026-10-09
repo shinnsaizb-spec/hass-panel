@@ -10,8 +10,10 @@ function BaseCard({
   headerRight = null,
   style = {}
 }) {
+  // 隐藏标题栏时多一个类名：CSS 据此把卡片裁成四圆角（见 BaseCard/style.css）
+  const noHeader = titleVisible === false;
   return (
-    <div className={`base-card ${className}`} style={style}>
+    <div className={`base-card ${className}${noHeader ? ' base-card--no-header' : ''}`} style={style}>
       {titleVisible !== false && (
         <div className="card-header">
           <h3>
