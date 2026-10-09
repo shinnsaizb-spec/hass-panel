@@ -143,7 +143,104 @@ services:
 
 ---
 
-## 五、常用运维操作
+## 五、自动更新与「有新版本」提醒
+
+**为什么飞牛 OS 里看不到这个镜像的更新提示？**
+飞牛（以及其他 NAS 的容器管理界面）的更新检测一般只盯 **Docker Hub**，而本项目镜像是
+**GHCR（ghcr.io）** 的，它识别不到，所以不会给你「有新版本」的角标。要自动更新 / 收到提醒，
+用下面任意一种方式。
+
+### 方案 A：Watchtower —— 自动拉取并重建（推荐）
+
+`containrrr/watchtower` 会定期检查镜像有没有更新，有就自动拉取、重建容器（**数据卷不受影响**）。
+
+新建一个目录放 `docker-compose.yml`：
+
+```yaml
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=Asia/Shanghai
+      - WATCHTOWER_CLEANUP=true          # 更新后删掉旧镜像，省空间
+      - WATCHTOWER_POLL_INTERVAL=86400   # 每 24 小时检查一次（单位秒）
+      # 只更新「打了开启标签」的容器，避免误更新数据库之类的关键服务
+      - WATCHTOWER_LABEL_ENABLE=true
+```
+
+然后给要自动更新的容器打一个标签。以本项目为例，在 `hass-panel` 的服务里加：
+
+```yaml
+services:
+  hass-panel:
+    image: ghcr.io/shinnsaizb-spec/hass-panel:latest
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+    # ...其余不变
+```
+
+> ⚠️ **只更新 `:latest` 才会生效**。如果你把镜像锁到了 `v1.8.0-3ad8e07` 这种固定标签，
+> Watchtower 不会动它（那个标签永远不变）—— 想「锁版本 + 手动升级」就故意这么写。
+
+**手动立刻检查一次**（不想等 24 小时）：
+
+```bash
+docker exec watchtower watchtower --run-once
+```
+
+### 方案 B：只提醒、不自动更新
+
+把 Watchtower 跑在 **monitor-only** 模式，它只检查并通知，不会动你的容器：
+
+```yaml
+    environment:
+      - WATCHTOWER_MONITOR_ONLY=true     # 只监控不更新
+      - WATCHTOWER_POLL_INTERVAL=86400
+      - WATCHTOWER_LABEL_ENABLE=true
+```
+
+### 收到提醒的方式（推微信 / Telegram / 邮件）
+
+Watchtower 用 [shoutrrr](https://containrrr.dev/shoutrrr/) 的 URL 配置通知，`WATCHTOWER_NOTIFICATION_URL` 一个变量搞定：
+
+```yaml
+    environment:
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      # 推到微信（用 pushplus，扫码拿 token）：https://www.pushplus.plus/
+      - WATCHTOWER_NOTIFICATION_URL=generic+https://www.pushplus.plus/send?token=你的token&title=NAS更新&content=有容器更新了，去看日志
+      # Telegram：telegram://botToken@telegram?channels=你的chatid
+      # Discord： discord://token@webhookid
+      # ntfy：    ntfy://topic@ntfy.sh
+```
+
+> URL 里有 `&` 的话**一定要加引号**，否则会被 shell 截断。
+> 想一次推多个渠道，多个 URL 用空格隔开。
+
+### 方案 C：飞牛的「计划任务」定时拉取
+
+不想装额外容器的话，用飞牛自带的计划任务，定时执行：
+
+```bash
+cd /vol1/1000/docker/hass-panel && docker compose pull && docker compose up -d
+```
+
+（路径换成你放 `docker-compose.yml` 的实际目录；频率建议每天一次、凌晨执行。）
+
+### 三个方案怎么选
+
+| 你想要的 | 用哪个 |
+|---|---|
+| 有新版本**自动更新**，省心 | 方案 A |
+| 只想知道**有新版本了**，更新自己手动控制 | 方案 B（或飞牛计划任务里只跑 `pull` 不 `up`） |
+| 不装额外容器 | 方案 C |
+
+---
+
+## 六、常用运维操作
 
 ```bash
 # 查看状态 / 日志
@@ -184,7 +281,7 @@ supervisorctl restart fastapi              # 只重启后端（改了后端代�
 
 ---
 
-## 六、常见问题
+## 七、常见问题
 
 **Q：打不开 5123**
 
@@ -228,7 +325,7 @@ docker compose restart
 
 ---
 
-## 七、目录结构速查
+## 八、目录结构速查
 
 ```
 仓库根目录
