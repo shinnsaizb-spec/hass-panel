@@ -65,7 +65,12 @@ function ConfigField({ field, value, onChange, config, onPatch }) {
           <div className="config-field-row">
             <label>{field.label}</label>
             <InputNumber
-              value={value === '' || value === undefined || value === null ? null : Number(value)}
+              // 和 switch 一样的约定：值没设过就显示 field.default（老卡片新增字段时不至于是一片空白）
+              value={
+                value === '' || value === undefined || value === null
+                  ? (field.default !== undefined && field.default !== '' ? Number(field.default) : null)
+                  : Number(value)
+              }
               onChange={(val) => onChange(val === null ? '' : String(val))}
               placeholder={field.placeholder}
               min={field.min}
@@ -74,6 +79,7 @@ function ConfigField({ field, value, onChange, config, onPatch }) {
               style={{ width: '100%' }}
             />
           </div>
+          {field.hint && <div className="config-field-hint">{field.hint}</div>}
         </div>
       );
 

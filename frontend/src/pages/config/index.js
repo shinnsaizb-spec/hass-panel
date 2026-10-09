@@ -30,6 +30,7 @@ import {
   mdiArrowLeft,
   mdiCog,
   mdiLanConnect,
+  mdiFloorPlan,
   mdiPowerSocket,
   mdiAccountGroup,
   mdiServer,
@@ -366,6 +367,16 @@ const getCardTypes = (t, groups = []) => ({
         label: t('fields.camerasConfig'),
         type: 'cameras-config',
         default: []
+      },
+      {
+        key: 'refreshInterval',
+        label: t('fields.cameraRefresh'),
+        type: 'number',
+        min: 0,
+        max: 3600,
+        step: 1,
+        default: '10',
+        hint: t('fields.cameraRefreshHint')
       }
     ]
   },
@@ -1554,6 +1565,14 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
               icon={<Icon path={mdiViewDashboard} size={12} />}
             >
               {t('groups.manage')}
+            </Button>
+
+            <Button
+              className="floorplan-button"
+              onClick={() => navigate('/floorplan')}
+              icon={<Icon path={mdiFloorPlan} size={12} />}
+            >
+              {t('floorplan.title')}
             </Button>
             
             <input

@@ -59,6 +59,7 @@ export const zh = {
     // 配置页面
     // 3D 户型图（编辑器 + 3D 视图）
     floorplan: {
+      title: '户型图',
       loadFailed: '读取户型图失败',
       saved: '户型图已保存',
       saveFailed: '保存户型图失败',
@@ -613,6 +614,8 @@ export const zh = {
       routerConfig: '路由器配置',
       nasConfig: 'NAS配置',
       camerasConfig: '摄像头配置',
+      cameraRefresh: '静态图刷新间隔（秒）',
+      cameraRefreshHint: '每隔多少秒重新抓一帧静态画面。填 0 = 不刷新（只在卡片加载时取一帧）；不填 = 默认 10 秒。',
       curtainsConfig: '窗帘配置',
       electricityConfig: '电量配置',
       scriptsConfig: '指令配置',

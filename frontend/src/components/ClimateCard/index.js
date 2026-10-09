@@ -39,9 +39,11 @@ const ICON_MAP = {
 
 function ClimateCard({ 
   config,
-  titleVisible
+  titleVisible: titleVisibleProp
 }) {
   const { t } = useLanguage();
+  // ⚠️ titleVisible 是 home 的 renderCard 塞进 config 传下来的，不是 props（同 CameraSection）
+  const titleVisible = config?.titleVisible ?? titleVisibleProp;
   const climate = useEntity(config?.entity_id || '', {returnNullIfNotFound: true});
 
   const target_temp_step = climate?.attributes?.target_temp_step;

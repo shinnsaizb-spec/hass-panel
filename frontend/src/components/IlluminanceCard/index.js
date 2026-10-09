@@ -5,8 +5,10 @@ import { useLanguage } from '../../i18n/LanguageContext';
 import BaseCard from '../BaseCard';
 import './style.css';
 
-function IlluminanceCard({ config, titleVisible }) {
+function IlluminanceCard({ config, titleVisible: titleVisibleProp }) {
   const { t } = useLanguage();
+  // ⚠️ titleVisible 是 home 的 renderCard 塞进 config 传下来的，不是 props（同 CameraSection）
+  const titleVisible = config?.titleVisible ?? titleVisibleProp;
   // 从 config.sensors 获取传感器列表
   const sensors = Array.isArray(config.sensors) ? config.sensors : [];
 

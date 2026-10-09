@@ -58,6 +58,7 @@ export const en = {
 
     // 3D floorplan (editor + 3D view)
     floorplan: {
+      title: 'Floorplan',
       loadFailed: 'Failed to load the floorplan',
       saved: 'Floorplan saved',
       saveFailed: 'Failed to save the floorplan',
@@ -604,6 +605,8 @@ export const en = {
         routerConfig: 'Router Configuration',
         nasConfig: 'NAS Configuration',
         camerasConfig: 'Cameras Configuration',
+        cameraRefresh: 'Snapshot refresh interval (seconds)',
+        cameraRefreshHint: 'How often to re-grab the still frame. 0 = no refresh (one frame on card load); leave empty for the default 10s.',
         curtainsConfig: 'Curtains Configuration',
         electricityConfig: 'Electricity Configuration',
         scriptsConfig: 'Scripts Configuration',

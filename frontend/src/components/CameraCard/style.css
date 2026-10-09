@@ -3,6 +3,11 @@
   border-radius: var(--border-radius-small);
   overflow: hidden;
   width: 100%;
+  /* 拉伸卡片时画面要跟着长高，所以这里做成纵向 flex、撑满外层 */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   transition: transform 0.3s ease;
 }
 
@@ -14,7 +19,10 @@
   position: relative;
   cursor: pointer;
   background: var(--color-background);
-  height: 150px;
+  /* ⚠️ 别写死高度（以前是 height:150px）：那样拉伸卡片只有宽度会变、高度不动。
+     改成 flex:1 撑满 .camera-card 剩下的高度。 */
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .camera-placeholder {
@@ -32,7 +40,8 @@
 
 .camera-image {
   width: 100%;
-  height: 150px;
+  /* 跟着 .camera-preview 的高度走（以前写死 150px，卡片拉高后画面还是那么高） */
+  height: 100%;
   object-fit: cover;
   opacity: 0;
   transition: opacity 0.3s ease;

@@ -8,8 +8,14 @@ import './style.css';
 import { useCamera} from '@hakit/core';
 import { notification } from 'antd';
 
-function CameraSection({ config, titleVisible }) {
+function CameraSection({ config, titleVisible: titleVisibleProp }) {
   const { t } = useLanguage();
+
+  // ⚠️ titleVisible 不是当 props 传下来的 —— home 的 renderCard 是把它塞进 config 里传的
+  //    （`config={{ ...card.config, titleVisible: card.titleVisible }}`，见 pages/home/index.js）。
+  //    以前这里从 props 取，永远是 undefined → `hasTitle` 恒为 true → 标题栏怎么都取消不掉。
+  //    改成优先读 config，props 只作为兜底。
+  const titleVisible = config?.titleVisible ?? titleVisibleProp;
 
   // 正在播放的摄像头（按 entity_id 记）。
   // 状态放在这一层，是因为「有标题时播放键要出现在标题右边」——那个位置在 BaseCard 的
@@ -88,6 +94,8 @@ function CameraSection({ config, titleVisible }) {
             playUrl={camera.play_url}
             name={camera.name}
             supports_ptz={camera.supports_ptz}
+            // 静态图的刷新间隔（秒），0 / 不填 = 不刷新
+            refreshInterval={config?.refreshInterval}
             playing={!!playingIds[camera.entity_id]}
             onTogglePlaying={() => togglePlaying(camera.entity_id)}
             // 没标题时才在卡片右下角自己画一个播放键

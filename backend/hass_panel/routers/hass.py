@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
-import aiohttp
 from loguru import logger
 
 from hass_panel.core.deps import get_db
@@ -73,41 +72,3 @@ async def get_daily_consumption(entity_id: str, days: int = 7):
     file_cache.set(cache_key, data, ttl=3600)
     
     return generate_resp(data=data)
-
-
-
-        
-
-@router.get("/camera_snapshot/{entity_id}")
-async def get_camera_snapshot(entity_id: str):
-    """取摄像头的一帧定格画面（转给 HA 的 camera_proxy）。
-
-    为什么由后端代取：HA 的 /api/camera_proxy/<entity_id> 必须带长期令牌，前端直接请求
-    会有两个问题 —— ① 跨域；② 令牌会暴露在 URL / network 面板里。后端拿数据库里存着的
-    令牌代取一次，回一个 JPEG 给前端，前端只管显示。
-    """
-    if not entity_id.startswith("camera."):
-        raise HTTPException(status_code=400, detail="entity_id 必须是 camera.*")
-
-    try:
-        api = HomeAssistantAPI()
-        async with aiohttp.ClientSession() as session:
-            url = f"{api.base_url}/api/camera_proxy/{entity_id}"
-            async with session.get(url, headers=api.headers) as resp:
-                if resp.status != 200:
-                    body = (await resp.text())[:160]
-                    logger.warning(f"取摄像头定格画面失败 {entity_id}: {resp.status} {body}")
-                    raise HTTPException(status_code=502, detail=f"HA 返回 {resp.status}")
-                data = await resp.read()
-                ctype = resp.headers.get("Content-Type", "image/jpeg")
-        return Response(
-            content=data,
-            media_type=ctype,
-            # 定格画面要实时，别让浏览器缓存
-            headers={"Cache-Control": "no-store, max-age=0"},
-        )
-    except HTTPException:
-        raise
-    except Exception as e:  # noqa: BLE001
-        logger.error(f"取摄像头定格画面异常 {entity_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
