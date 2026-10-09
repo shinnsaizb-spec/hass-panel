@@ -1,6 +1,6 @@
 # Docker 部署说明
 
-> 面向 **NAS / 服务器** 的部署方式。本地直接跑（不用 Docker）见 [`运行说明.md`](./运行说明.md)。
+> 面向 **NAS / 服务器** 的部署方式。本地直接跑（不用 Docker）见仓库里的 `start-all.bat`（一键起后端 + 前端 + go2rtc）。
 > 一个容器里同时跑 **nginx + FastAPI + go2rtc** 三个进程，对外只需要暴露一个入口端口。
 
 ---
@@ -37,7 +37,7 @@
 
 `network_mode: host` —— 容器直接共用宿主机的网络。这样 go2rtc 的 WebRTC 不用折腾端口映射，摄像头最容易通。
 
-> ⚠️ host 网络在 **Linux / 群晖 / 飞牛 / unRAID** 上都没问题；**Windows / macOS 的 Docker Desktop 支持有限**，这种情况建议直接用 Windows 本地跑（见 `运行说明.md`）。
+> ⚠️ host 网络在 **Linux / 群晖 / 飞牛 / unRAID** 上都没问题；**Windows / macOS 的 Docker Desktop 支持有限**，这种情况建议直接在 Windows 本地跑（仓库里有 `start-all.bat`）。
 
 ---
 

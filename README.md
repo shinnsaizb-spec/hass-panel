@@ -64,7 +64,7 @@
 - Docker 部署接线完善：nginx 静态托管插件、go2rtc 用 ffmpeg 自动转码 H.265
 - 修复若干已知问题：HA 令牌失效、隐藏标题栏后内容贴边、卡片内元素对齐等（详见更新日志）
 
-> 📋 完整改动见 [CHANGELOG.md](./CHANGELOG.md)；仓库结构地图见 [PROJECT_MAP.md](./PROJECT_MAP.md)；NAS / 服务器部署见 [Docker部署说明.md](./Docker部署说明.md)。
+> 📋 完整改动见 [CHANGELOG.md](./CHANGELOG.md)；NAS / 服务器部署见 [Docker部署说明.md](./Docker部署说明.md)。
 
 ---
 
