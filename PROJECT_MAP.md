@@ -331,7 +331,8 @@ start-go2rtc.bat     # 仅 go2rtc（Windows 本地需要单独起）
 | `build_image.yml` / `beta.yml` / `release.yml` | 上游的：要 `CR_PAT`、阿里云、Docker Hub 密钥，fork 里跑不通                            |
 | `trigger.yml`                                  | 上游的：触发另一个仓库，fork 里无意义（但不会报错）                                          |
 
-镜像：`ghcr.io/shinnsaizb-spec/hass-panel:latest`（公开，可直接 `docker pull`）
+镜像：`ghcr.io/shinnsaizb-spec/hass-panel:latest`（公开，可直接 `docker pull`）。
+每次构建自动打三个标签：`:latest` / `:v<VERSION>`（版本号取自仓库根目录 **`VERSION` 文件**）/ `:v<VERSION>-<短sha>`（唯一，用于精确回滚）。⚠️ 工作流里 tag 是用一个 `Resolve version tags` 步骤拼出来的（写进 `$GITHUB_OUTPUT` 的 `tags`，多行 heredoc 语法），别再改回写死两行 —— 那样 push 时两个 tag 都是 `latest`，等于没有版本标签。`push.paths` 里也加了 `VERSION`，所以只改版本号也会触发构建。
 
 ---
 

@@ -55,6 +55,20 @@ ghcr.io/shinnsaizb-spec/hass-panel:latest
 docker pull ghcr.io/shinnsaizb-spec/hass-panel:latest
 ```
 
+**每次构建都会打三个标签**，回滚时很有用：
+
+| 标签 | 说明 |
+|---|---|
+| `:latest` | 永远指向最新一次构建（`docker compose pull` 拉的就是它） |
+| `:v<VERSION>` | 版本号，取自仓库根目录的 **`VERSION` 文件**（如 `v1.8.0`） |
+| `:v<VERSION>-<短sha>` | **唯一标签**，同一个版本号重复构建也不会互相覆盖，精确回滚用这个 |
+
+**想回滚到某个历史版本**：把 `docker-compose.yml` 里的 `image` 改成对应标签（例如
+`ghcr.io/shinnsaizb-spec/hass-panel:v1.8.0-3ad8e07`），再 `docker compose up -d` 即可。
+
+**想发新版本**：改仓库根目录的 `VERSION` 文件（如 `1.8.0` → `1.8.1`）推 main，构建会自动带上新版本号。
+也可以在 Actions 页面手动跑一次工作流，在 `version` 输入框里临时指定（会覆盖 `VERSION` 文件）。
+
 在 NAS 上建一个目录，放一个 `docker-compose.yml`：
 
 ```yaml
@@ -141,6 +155,10 @@ docker compose restart
 
 # 更新到最新镜像（方式 A）
 docker compose pull && docker compose up -d
+
+# 想锁定到某个版本（可回滚），先把 compose 里的 image 改成具体标签，例如：
+#   image: ghcr.io/shinnsaizb-spec/hass-panel:v1.8.0-3ad8e07
+# 再 docker compose pull && docker compose up -d
 
 # 更新到最新代码（方式 B）
 git pull

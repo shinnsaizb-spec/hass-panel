@@ -3,8 +3,13 @@ name: Build Image (GHCR)
 # 云端构建镜像并推送到 GitHub Container Registry（ghcr.io），
 # 之后在飞牛 NAS 上直接 docker pull 即可，不需要本机装 Docker。
 #
-# 产物：ghcr.io/<你的GitHub用户名>/hass-panel:latest
-#       ghcr.io/<你的GitHub用户名>/hass-panel:<版本号>
+# 产物（每次构建都会打这三个标签）：
+#   ghcr.io/<owner>/hass-panel:latest                  永远指向最新一次构建
+#   ghcr.io/<owner>/hass-panel:v<VERSION>              版本号，取自仓库根目录的 VERSION 文件
+#   ghcr.io/<owner>/hass-panel:v<VERSION>-<短sha>      唯一标签，回滚用这个最准
+#
+# 想发新版本：改仓库根目录的 VERSION 文件（如 1.8.0 → 1.8.1）再推 main 即可。
+# 手动触发时也可以临时在 version 输入框里指定，会覆盖 VERSION 文件。
 
 on:
   # 手动触发（Actions 页面点 Run workflow）
@@ -29,6 +34,7 @@ on:
       - 'docker/**'
       - 'docker-compose.yml'
       - '.dockerignore'
+      - 'VERSION'
       - '.github/workflows/build-ghcr.yml'
 
 permissions:
@@ -41,6 +47,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # 算出这次要打哪些标签。
+      # 版本号优先用手动触发时填的 version，其次读仓库根目录的 VERSION 文件；
+      # 再拼一个带短 sha 的唯一标签，这样同一个版本号重复构建也不会互相覆盖、能精确回滚。
+      - name: Resolve version tags
+        id: ver
+        run: |
+          set -e
+          INPUT="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT" ] && [ "$INPUT" != "latest" ]; then
+            VERSION="$INPUT"
+          else
+            VERSION="$(tr -d ' \r\n' < VERSION)"
+          fi
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          {
+            echo "tags<<EOF"
+            echo "${IMAGE}:latest"
+            echo "${IMAGE}:v${VERSION}"
+            echo "${IMAGE}:v${VERSION}-${SHORT_SHA}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "本次标签："
+          echo "  ${IMAGE}:latest"
+          echo "  ${IMAGE}:v${VERSION}"
+          echo "  ${IMAGE}:v${VERSION}-${SHORT_SHA}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -81,6 +114,4 @@ jobs:
           file: ./docker/Dockerfile
           platforms: ${{ github.event.inputs.platforms || 'linux/amd64' }}
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ github.event.inputs.version || 'latest' }}
-            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:latest
+          tags: ${{ steps.ver.outputs.tags }}
