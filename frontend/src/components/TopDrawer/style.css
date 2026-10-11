@@ -66,7 +66,12 @@
   left: var(--drawer-left, 0%);
   /* 宽高都用百分比：100% = 整屏宽 / 整屏高（面板是 fixed，包含块就是视口） */
   width: var(--drawer-width, 100%);
-  height: 0;
+  /* 高度一直按配置给足，收起靠下面的 transform 把整块移出屏幕。
+     ⚠️ 以前是 height: 0 → 展开时动 height：那会触发 layout + paint，
+        而且「关闭态挂载时量到退化宽度」还会让里面的网格塌成一条线。
+        改成动 transform 后走 GPU，顺带把这个老问题一起解决了。 */
+  height: var(--drawer-max-height, 85%);
+  transform: translateY(-100%);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -76,13 +81,13 @@
   backdrop-filter: blur(var(--drawer-blur, 12px));
   -webkit-backdrop-filter: blur(var(--drawer-blur, 12px));
   /* ⚠️ 这里不要加 border-bottom / box-shadow：
-     面板关闭时 height 只有 0，但宽度是整屏，边框和阴影会在屏幕最顶端
-     画出一条贯穿全屏的长线（就是之前那条「长白边」）。只在打开时加阴影。 */
-  transition: height 0.3s ease;
+     面板收起时整块在屏幕外，加边框和阴影只会在最顶端画出一条贯穿全屏的长线。
+     只在打开时加阴影。 */
+  transition: transform var(--duration-slow) var(--ease-drawer);
 }
 
 .top-drawer.open .top-drawer-panel {
-  height: var(--drawer-max-height, 85%);
+  transform: translateY(0);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
 }
 

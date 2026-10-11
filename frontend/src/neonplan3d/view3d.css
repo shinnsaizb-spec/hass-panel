@@ -1,0 +1,1435 @@
+/* ==========================================================================
+ * 本文件由工具自动生成，请勿手改。
+ * 来源：neonplan3d (https://github.com/PATCoder97/neonplan3d)，MIT 许可。
+ * 由 .workbuddy-ai/tools/extract-np3d-css.mjs 抽取自 styles.ts 与 components/view3d.ts。
+ * Lit 的 :host 已替换为 .fp3d-root。
+ * ========================================================================== */
+
+/* ---- tokens ---- */
+.fp3d-root {
+    --fp3d-bg: #070b14;
+    --fp3d-bg2: #0d1424;
+    --fp3d-chrome: rgba(14, 21, 38, 0.86);
+    --fp3d-chrome-solid: #0f1729;
+    --fp3d-line: rgba(120, 170, 255, 0.16);
+    --fp3d-text: #e6eefc;
+    --fp3d-muted: #8a9bb8;
+    --fp3d-accent: #37e0ff;
+    --fp3d-accent-text: #041018;
+    --fp3d-soft: #5b7cff;
+    --fp3d-warm: #ffb547;
+    --fp3d-danger: #ff6b8b;
+    --fp3d-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    --fp3d-font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --fp3d-title-font: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+    color-scheme: dark;
+    font-family: var(--fp3d-font);
+    color: var(--fp3d-text);
+  }
+
+/* ---- controls ---- */
+.fp3d-seg {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 999px;
+    background: var(--fp3d-chrome);
+    box-shadow: var(--fp3d-shadow);
+  }
+  .fp3d-seg button,
+  .fp3d-chip {
+    font: inherit;
+    font-weight: 500;
+    border: none;
+    background: none;
+    color: var(--fp3d-muted);
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    min-height: 34px;
+  }
+  .fp3d-seg button[aria-pressed="true"],
+  .fp3d-chip[aria-pressed="true"] {
+    background: var(--fp3d-accent);
+    color: var(--fp3d-accent-text);
+  }
+  .fp3d-seg button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .fp3d-chip {
+    background: var(--fp3d-chrome);
+    color: var(--fp3d-text);
+    box-shadow: var(--fp3d-shadow);
+  }
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--fp3d-accent);
+    outline-offset: 2px;
+  }
+  .fp3d-btn {
+    font: inherit;
+    font-weight: 600;
+    border: 1px solid var(--fp3d-line);
+    background: rgba(55, 224, 255, 0.06);
+    color: var(--fp3d-text);
+    border-radius: 10px;
+    padding: 7px 12px;
+    cursor: pointer;
+    min-height: 34px;
+  }
+  .fp3d-btn:hover {
+    border-color: var(--fp3d-accent);
+  }
+  .fp3d-btn.fp3d-danger {
+    color: var(--fp3d-danger);
+  }
+  .fp3d-btn.fp3d-primary {
+    background: var(--fp3d-accent);
+    color: var(--fp3d-accent-text);
+    border-color: transparent;
+  }
+  .fp3d-field {
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--fp3d-muted);
+  }
+  .fp3d-field input,
+  .fp3d-field select {
+    font: inherit;
+    font-size: 14px;
+    color: var(--fp3d-text);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--fp3d-line);
+    border-radius: 8px;
+    padding: 7px 9px;
+    min-width: 0;
+  }
+  .fp3d-field input[type="range"] {
+    padding: 0;
+    accent-color: var(--fp3d-accent);
+  }
+  .fp3d-field select option {
+    background: var(--fp3d-chrome-solid);
+  }
+  /* fingers need 40 px */
+  @media (pointer: coarse) {
+    .fp3d-seg button,
+    .fp3d-chip,
+    .fp3d-btn {
+      min-height: 40px;
+    }
+  }
+
+/* ---- 3D 视图主样式 ---- */
+.fp3d-root {
+        display: block;
+        position: relative;
+        min-height: 200px;
+      }
+      .fp3d-alert-banner {
+        position: absolute;
+        left: 50%;
+        top: 10px;
+        transform: translateX(-50%);
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        max-width: calc(100% - 24px);
+        z-index: 4;
+      }
+      .fp3d-alert {
+        flex: 0 1 auto;
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 7px 14px 7px 12px;
+        border: 0;
+        border-left: 4px solid #ff3b4f;
+        border-radius: 12px;
+        background: var(--fp3d-chrome-solid);
+        color: var(--fp3d-text);
+        font: 600 13.5px var(--fp3d-font);
+        box-shadow: 0 0 18px rgba(255, 59, 79, 0.35);
+        cursor: pointer;
+        animation: fp3d-alert-pulse 1.2s ease-in-out infinite;
+      }
+      .fp3d-alert-water,
+      .fp3d-alert-window_rain {
+        border-left-color: #4fb3ff;
+        box-shadow: 0 0 18px rgba(79, 179, 255, 0.35);
+      }
+      .fp3d-alert-alarm_pending {
+        border-left-color: #ffb547;
+        box-shadow: 0 0 18px rgba(255, 181, 71, 0.35);
+      }
+      .fp3d-alert-more {
+        align-self: center;
+        color: var(--fp3d-muted);
+        font-size: 13px;
+      }
+      @keyframes fp3d-alert-pulse {
+        50% {
+          box-shadow: 0 0 4px transparent;
+        }
+      }
+      .fp3d-has-alerts .fp3d-energy {
+        top: 58px;
+      }
+      .fp3d-scenes {
+        position: absolute;
+        left: 60px;
+        right: 60px;
+        bottom: calc(10px + var(--fp3d-bottom-inset, 0px));
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .fp3d-scenes .fp3d-chip {
+        pointer-events: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fp3d-alert,
+        .fp3d-dev-found {
+          animation: none;
+        }
+      }
+      .fp3d-stage {
+        --fp3d-safe-top: env(safe-area-inset-top, 0px);
+        --fp3d-safe-right: env(safe-area-inset-right, 0px);
+        --fp3d-safe-bottom: env(safe-area-inset-bottom, 0px);
+        --fp3d-safe-left: env(safe-area-inset-left, 0px);
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        container-type: size;
+        container-name: fp3d;
+        background: radial-gradient(ellipse at 50% 35%, var(--fp3d-sky, var(--fp3d-bg2)), var(--fp3d-ground, var(--fp3d-bg)) 72%);
+        transition: background 2s ease;
+      }
+      .fp3d-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: grab;
+      }
+      .fp3d-canvas:active {
+        cursor: grabbing;
+      }
+      .fp3d-labels {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .fp3d-pin-info {
+        display: grid;
+        gap: 1px;
+        text-align: center;
+      }
+      .fp3d-pin-info small {
+        font-size: 11px;
+        font-weight: 500;
+        opacity: 0.9;
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-pin {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: auto;
+        font: 600 12.5px var(--fp3d-title-font);
+        color: var(--fp3d-text);
+        background: var(--fp3d-chrome);
+        border: 1px solid var(--fp3d-line);
+        border-radius: 10px;
+        padding: 5px 10px;
+        cursor: pointer;
+        white-space: nowrap;
+        backdrop-filter: blur(6px);
+        box-shadow: var(--fp3d-shadow);
+      }
+      .fp3d-pin-floor {
+        display: grid;
+        justify-items: start;
+        gap: 1px;
+        padding: 8px 14px;
+        border-radius: 12px;
+        background: var(--fp3d-accent);
+        color: var(--fp3d-accent-text);
+        border-color: transparent;
+        box-shadow: 0 0 22px rgba(55, 224, 255, 0.28);
+      }
+      .fp3d-pin-floor b {
+        font: 700 15px var(--fp3d-title-font);
+        letter-spacing: -0.01em;
+      }
+      .fp3d-pin-floor span {
+        font: 500 12px var(--fp3d-font);
+        opacity: 0.78;
+      }
+      .fp3d-dev {
+        position: absolute;
+        left: 0;
+        top: 0;
+        pointer-events: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px;
+        border-radius: 999px;
+        border: 1px solid var(--fp3d-line);
+        background: var(--fp3d-chrome);
+        color: var(--fp3d-muted);
+        font: 600 12px var(--fp3d-font);
+        cursor: pointer;
+        white-space: nowrap;
+        backdrop-filter: blur(6px);
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+        transition: opacity 0.2s ease;
+      }
+      .fp3d-dev-icon {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(91, 124, 255, 0.14);
+      }
+      .fp3d-dev[data-entity^="trail:"] {
+        padding: 2px 4px 2px 2px;
+        font-size: 11px;
+        border-color: rgba(55, 224, 255, 0.5);
+      }
+      .fp3d-dev[data-entity^="trail:"] .fp3d-dev-icon {
+        color: #37e0ff;
+      }
+      .fp3d-dev[data-entity^="trail:"] .fp3d-dev-text {
+        display: inline;
+      }
+      .fp3d-dev-text {
+        display: none;
+        padding-right: 6px;
+        color: var(--fp3d-text);
+        font-variant-numeric: tabular-nums;
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .fp3d-dev-watt:empty {
+        display: none;
+      }
+      .fp3d-dev-watt {
+        padding: 1px 6px 1px 0;
+        color: #37e0ff;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+      .fp3d-dev-on .fp3d-dev-watt {
+        color: #2a1a00;
+      }
+      .fp3d-person {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #ff5fd2;
+        color: #fff;
+        font: 700 12px var(--fp3d-font);
+        box-shadow:
+          0 0 0 2px rgba(255, 95, 210, 0.45),
+          0 0 18px #ff5fd2;
+        pointer-events: auto;
+      }
+      .fp3d-person img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .fp3d-person[hidden] {
+        display: none;
+      }
+      .fp3d-no-room-names .fp3d-pin {
+        display: none !important;
+      }
+      /* tablet level: blur over the canvas and glowing shadows are expensive on weak GPUs */
+      .fp3d-stage.fp3d-low {
+        transition: none;
+      }
+      .fp3d-low .fp3d-pin,
+      .fp3d-low .fp3d-dev,
+      .fp3d-low .fp3d-dev-on,
+      .fp3d-low .fp3d-energy-item,
+      .fp3d-low .fp3d-find input,
+      .fp3d-low .fp3d-find-list,
+      .fp3d-low .fp3d-find-btn,
+      .fp3d-low .fp3d-swipe,
+      .fp3d-low .fp3d-thumb {
+        backdrop-filter: none;
+        box-shadow: none;
+        transition: none;
+      }
+      .fp3d-thumbs {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: calc(100% - 140px);
+        overflow-y: auto;
+        scrollbar-width: none;
+        z-index: 2;
+      }
+      .fp3d-thumb {
+        position: relative;
+        display: grid;
+        padding: 0;
+        width: 150px;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--fp3d-chrome) 70%, transparent);
+        color: var(--fp3d-text);
+        cursor: pointer;
+        overflow: hidden;
+        font: inherit;
+        box-shadow: var(--fp3d-shadow);
+        opacity: 0.72;
+        transition: opacity 0.15s, border-color 0.15s;
+      }
+      .fp3d-thumb:hover,
+      .fp3d-thumb[aria-pressed="true"] {
+        opacity: 1;
+      }
+      .fp3d-thumb[aria-pressed="true"] {
+        border-color: var(--fp3d-accent);
+        box-shadow: var(--fp3d-shadow), 0 0 0 1px var(--fp3d-accent), 0 0 18px rgba(55, 224, 255, 0.25);
+      }
+      .fp3d-thumb img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+      }
+      .fp3d-thumb span {
+        position: absolute;
+        left: 8px;
+        bottom: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      }
+      .fp3d-thumb-house {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+      }
+      .fp3d-thumb-house span {
+        position: static;
+        text-shadow: none;
+      }
+      .fp3d-thumbs-small .fp3d-thumb {
+        width: 104px;
+      }
+      .fp3d-find-btn {
+        position: absolute;
+        left: 12px;
+        bottom: calc(10px + var(--fp3d-bottom-inset, 0px));
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 13px;
+        background: var(--fp3d-chrome);
+        color: var(--fp3d-text);
+        box-shadow: var(--fp3d-shadow);
+        cursor: pointer;
+      }
+      /* the star sits above the search button, its menu opens above it */
+      .fp3d-central-btn {
+        position: absolute;
+        left: 12px;
+        bottom: calc(56px + var(--fp3d-bottom-inset, 0px));
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 13px;
+        background: var(--fp3d-chrome);
+        color: var(--fp3d-text);
+        box-shadow: var(--fp3d-shadow);
+        cursor: pointer;
+        z-index: 3;
+      }
+      .fp3d-central-on {
+        color: var(--fp3d-accent);
+      }
+      .fp3d-central {
+        position: absolute;
+        left: 12px;
+        bottom: calc(104px + var(--fp3d-bottom-inset, 0px));
+        width: min(320px, calc(100% - 24px));
+        max-height: calc(100% - 140px);
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px 14px;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 16px;
+        background: var(--fp3d-chrome);
+        color: var(--fp3d-text);
+        box-shadow: var(--fp3d-shadow);
+        backdrop-filter: blur(10px);
+        z-index: 4;
+      }
+      .fp3d-central > b {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.7;
+      }
+      .fp3d-central-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 6px;
+        align-items: center;
+      }
+      .fp3d-central-row small {
+        opacity: 0.6;
+      }
+      .fp3d-central .fp3d-btn {
+        min-width: 64px;
+      }
+      .fp3d-central-armed {
+        background: #ff8a3d !important;
+        color: #1a0d00 !important;
+      }
+      .fp3d-central-favs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .fp3d-own-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .fp3d-own-btn ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .fp3d-central-hint {
+        margin: 0;
+        font-size: 13px;
+        opacity: 0.7;
+      }
+      .fp3d-low .fp3d-central {
+        backdrop-filter: none;
+      }
+      /* the eye sits beside the search button; alone in the corner once the view is clean */
+      .fp3d-eye {
+        position: absolute;
+        left: 56px;
+        bottom: calc(10px + var(--fp3d-bottom-inset, 0px));
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid rgba(160, 240, 255, 0.35);
+        background: rgba(8, 16, 34, 0.7);
+        color: var(--fp3d-text);
+        cursor: pointer;
+        z-index: 4;
+      }
+      .fp3d-eye-clean {
+        left: 12px;
+        opacity: 0.55;
+      }
+      .fp3d-eye:hover,
+      .fp3d-eye-clean:hover {
+        opacity: 1;
+      }
+      .fp3d-find {
+        position: absolute;
+        left: 12px;
+        bottom: calc(10px + var(--fp3d-bottom-inset, 0px));
+        width: min(340px, calc(100% - 24px));
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 6px;
+        z-index: 3;
+      }
+      .fp3d-find input {
+        box-sizing: border-box;
+        width: 100%;
+        height: 42px;
+        padding: 0 42px 0 14px;
+        border: 1px solid var(--fp3d-line);
+        border-radius: 14px;
+        background: var(--fp3d-chrome);
+        color: var(--fp3d-text);
+        font: inherit;
+        font-size: 15px;
+        box-shadow: var(--fp3d-shadow);
+        backdrop-filter: blur(8px);
+      }
+      .fp3d-find-close {
+        position: absolute;
+        right: 6px;
+        bottom: 6px;
+        width: 30px;
+        height: 30px;
+        border: 0;
+        border-radius: 10px;
+        background: none;
+        color: var(--fp3d-muted);
+        cursor: pointer;
+      }
+      .fp3d-find-list {
+        display: grid;
+        padding: 6px;
+        border-radius: 14px;
+        background: var(--fp3d-chrome);
+        box-shadow: var(--fp3d-shadow);
+        backdrop-filter: blur(8px);
+      }
+      .fp3d-find-list button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 10px;
+        background: none;
+        color: var(--fp3d-text);
+        text-align: left;
+        font: inherit;
+        cursor: pointer;
+      }
+      .fp3d-find-list button:hover,
+      .fp3d-find-list button:focus-visible {
+        background: rgba(127, 127, 127, 0.14);
+      }
+      .fp3d-find-list b {
+        display: block;
+        font-weight: 600;
+      }
+      .fp3d-find-list small,
+      .fp3d-find-list p {
+        color: var(--fp3d-muted);
+        font-size: 12px;
+        margin: 0;
+      }
+      .fp3d-find-list p {
+        padding: 8px 10px;
+      }
+      .fp3d-find-icon {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        background: rgba(127, 127, 127, 0.15);
+        flex: none;
+      }
+      .fp3d-find-icon svg {
+        width: 16px;
+        height: 16px;
+      }
+      .fp3d-swipe {
+        position: absolute;
+        transform: translate(-50%, calc(-100% - 28px));
+        display: grid;
+        grid-template-columns: auto auto;
+        align-items: center;
+        gap: 2px 12px;
+        padding: 8px 12px;
+        border-radius: 14px;
+        background: var(--fp3d-chrome);
+        box-shadow: var(--fp3d-shadow);
+        pointer-events: none;
+        white-space: nowrap;
+        z-index: 4;
+      }
+      .fp3d-swipe span {
+        font-size: 12px;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-swipe b {
+        grid-row: 2;
+        font: 700 22px var(--fp3d-title-font);
+      }
+      .fp3d-swipe i {
+        grid-row: 1 / 3;
+        grid-column: 2;
+        position: relative;
+        width: 10px;
+        height: 44px;
+        border-radius: 5px;
+        background: rgba(127, 127, 127, 0.25);
+        overflow: hidden;
+      }
+      .fp3d-swipe em {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--fp3d-warm);
+      }
+      .fp3d-menu-backdrop {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+      }
+      .fp3d-through {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+      }
+      /* the camera wall: a glass sheet over the scene with every camera's picture */
+      .fp3d-wall {
+        position: absolute;
+        inset: 56px 12px calc(var(--fp3d-bottom-inset, 0px) + 12px);
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(8, 16, 34, 0.86);
+        border: 1px solid rgba(160, 240, 255, 0.4);
+        box-shadow: 0 0 28px rgba(55, 224, 255, 0.25);
+        overflow: auto;
+      }
+      .fp3d-wall-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-weight: 600;
+        color: #e6fbff;
+      }
+      .fp3d-wall-pro {
+        margin: 0;
+        color: #ffd75a;
+      }
+      .fp3d-wall-head .fp3d-wall-title {
+        flex: 1;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 8px;
+      }
+      .fp3d-wall-title b {
+        color: #ff6b6b;
+        font-weight: 600;
+      }
+      .fp3d-wall-tools {
+        display: flex;
+        gap: 6px;
+      }
+      .fp3d-wall-big {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0a1426;
+      }
+      .fp3d-wall-big img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      /* the stream player: a bare card, as wide as the sheet allows for a 16:9 picture */
+      .fp3d-wall-big > hui-picture-entity-card,
+      .fp3d-wall-big > hui-error-card {
+        width: min(100%, calc((100vh - 200px) * 16 / 9));
+        --ha-card-background: transparent;
+        --ha-card-border-width: 0;
+        --ha-card-box-shadow: none;
+      }
+      .fp3d-wall-grid {
+        flex: 1;
+        display: grid;
+        align-content: center;
+        gap: 12px;
+        min-height: 0;
+      }
+      .fp3d-wall-cam {
+        position: relative;
+        padding: 0;
+        border: 1px solid rgba(160, 240, 255, 0.3);
+        border-radius: 12px;
+        overflow: hidden;
+        background: #0a1426;
+        cursor: pointer;
+        aspect-ratio: 16 / 9;
+        width: 100%;
+        max-height: calc(100vh - 160px);
+      }
+      .fp3d-wall-cam img,
+      .fp3d-wall-none {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #8aa;
+      }
+      .fp3d-wall-seen {
+        border-color: rgba(255, 80, 90, 0.9);
+        box-shadow: 0 0 14px rgba(255, 60, 70, 0.5);
+      }
+      .fp3d-wall-name {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 4px 8px;
+        font-size: 12px;
+        text-align: left;
+        color: #e6fbff;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+      }
+      .fp3d-wall-name b {
+        color: #ff6b6b;
+        font-weight: 600;
+      }
+      .fp3d-pro {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 6;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 320px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        background: var(--fp3d-chrome-solid);
+        border: 1px solid var(--fp3d-accent);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      }
+      .fp3d-pro div {
+        display: flex;
+        gap: 8px;
+      }
+      .fp3d-pro a {
+        text-decoration: none;
+      }
+      .fp3d-flash::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        background: rgba(225, 238, 255, 0.4);
+        pointer-events: none;
+      }
+      .fp3d-through-img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: var(--fp3d-blend);
+      }
+      .fp3d-through-bar {
+        position: absolute;
+        left: 50%;
+        bottom: calc(var(--fp3d-bottom-inset, 0px) + 14px);
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: calc(100% - 32px);
+        padding: 8px 10px 8px 16px;
+        border-radius: 999px;
+        background: var(--fp3d-chrome);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--fp3d-line);
+        pointer-events: auto;
+      }
+      .fp3d-through-name {
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      /* a small note that the picture is a still, so nobody wonders why it does not move */
+      .fp3d-still {
+        font-size: 11px;
+        font-weight: 400;
+        opacity: 0.65;
+        white-space: nowrap;
+        margin-left: 6px;
+      }
+      .fp3d-through-bar input[type="range"] {
+        width: 140px;
+        accent-color: var(--fp3d-accent);
+      }
+      .fp3d-through-on :is(.fp3d-pin, .fp3d-dev, .fp3d-energy, .fp3d-legend, .fp3d-thumbs, .fp3d-scenes, .fp3d-find-btn, .fp3d-stats) {
+        display: none;
+      }
+      fp3d-quick-menu {
+        position: absolute;
+        z-index: 6;
+      }
+      neon-honeycomb {
+        position: absolute;
+        z-index: 7;
+      }
+      .fp3d-menu-anchor {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 6;
+        pointer-events: none;
+      }
+      .fp3d-menu-anchor line {
+        stroke: var(--fp3d-accent);
+        stroke-width: 1;
+        stroke-dasharray: 3 4;
+        opacity: 0.66;
+      }
+      .fp3d-menu-anchor circle {
+        fill: var(--fp3d-accent);
+      }
+      .fp3d-dev-found {
+        animation: fp3d-found 0.6s ease-in-out 4;
+      }
+      @keyframes fp3d-found {
+        50% {
+          scale: 1.35;
+          filter: drop-shadow(0 0 12px var(--fp3d-accent));
+        }
+      }
+      .fp3d-legend {
+        position: absolute;
+        left: 12px;
+        bottom: calc(60px + var(--fp3d-bottom-inset, 0px));
+        display: grid;
+        gap: 4px;
+        min-width: 180px;
+        padding: 8px 11px;
+        border-radius: 12px;
+        background: var(--fp3d-chrome);
+        box-shadow: var(--fp3d-shadow);
+        font-size: 12px;
+        pointer-events: none;
+      }
+      .fp3d-legend-bar {
+        height: 8px;
+        border-radius: 4px;
+      }
+      .fp3d-legend-range {
+        display: flex;
+        justify-content: space-between;
+        color: var(--fp3d-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-legend-none {
+        color: var(--fp3d-warm);
+      }
+      /* Energie Pro: the glass hologram beside the house */
+      .fp3d-holo {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 4;
+        width: 236px;
+        padding: 12px 14px 11px;
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        background: linear-gradient(140deg, rgba(150, 235, 255, 0.2) 0%, rgba(70, 140, 230, 0.08) 45%, rgba(20, 60, 140, 0.05) 100%);
+        backdrop-filter: blur(7px) saturate(150%);
+        -webkit-backdrop-filter: blur(7px) saturate(150%);
+        border: 1px solid rgba(160, 240, 255, 0.55);
+        box-shadow:
+          0 0 28px rgba(55, 224, 255, 0.35),
+          0 0 2px rgba(200, 250, 255, 0.9),
+          inset 0 1px 0 rgba(255, 255, 255, 0.45),
+          inset 0 0 36px rgba(55, 224, 255, 0.14);
+        color: #e6fbff;
+        font-size: 12px;
+        line-height: 1.35;
+        text-shadow: 0 0 6px rgba(80, 220, 255, 0.55);
+        will-change: transform;
+        transform-origin: 0 0;
+      }
+      .fp3d-holo[hidden],
+      .fp3d-holo-link[hidden] {
+        display: none;
+      }
+      /* a device's card: smaller than the plant's */
+      /* the now-playing card: cover, titles, transport and volume */
+      .fp3d-holo-media .fp3d-holo-head {
+        cursor: pointer;
+      }
+      .fp3d-holo-track {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 6px;
+      }
+      .fp3d-holo-cover {
+        width: 46px;
+        height: 46px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex: none;
+        box-shadow: 0 0 12px rgba(55, 224, 255, 0.35);
+      }
+      .fp3d-holo-cover-none {
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        background: rgba(55, 224, 255, 0.15);
+        color: #a8f0ff;
+      }
+      .fp3d-holo-titles {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+      .fp3d-holo-titles b {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+      }
+      .fp3d-holo-titles span {
+        font-size: 12px;
+        opacity: 0.8;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+      }
+      .fp3d-holo-media-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .fp3d-holo-media-controls button {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 1px solid rgba(160, 240, 255, 0.4);
+        background: rgba(8, 16, 34, 0.6);
+        color: var(--fp3d-text);
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .fp3d-holo-media-controls input[type="range"] {
+        width: 70px;
+        accent-color: var(--fp3d-accent);
+      }
+      .fp3d-holo-car-main {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .fp3d-holo-car-main b {
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-holo-car-main span {
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      .fp3d-holo-car-bar {
+        height: 5px;
+        margin-top: 6px;
+        border-radius: 3px;
+        background: rgba(160, 240, 255, 0.15);
+        overflow: hidden;
+      }
+      .fp3d-holo-car-bar i {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        box-shadow: 0 0 8px currentColor;
+      }
+      .fp3d-holo-on {
+        border-color: var(--fp3d-accent) !important;
+        color: var(--fp3d-accent) !important;
+      }
+      .fp3d-holo-vol {
+        font-size: 11px;
+        opacity: 0.8;
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-holo-dev {
+        width: 184px;
+        padding: 10px 12px 9px;
+      }
+      /* tablet level: no blur and no sheen, the glass is painted */
+      .fp3d-holo-plain {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(12, 26, 50, 0.9);
+      }
+      .fp3d-holo-plain .fp3d-holo-sheen,
+      .fp3d-holo-plain .fp3d-holo-scan {
+        display: none;
+      }
+      /* the thin line from the solar field up to the card, with a dot on the field */
+      .fp3d-holo-link {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 3;
+        pointer-events: none;
+        overflow: visible;
+      }
+      .fp3d-holo-link line {
+        stroke: rgba(160, 240, 255, 0.75);
+        stroke-width: 1.2;
+        filter: drop-shadow(0 0 3px rgba(55, 224, 255, 0.8));
+      }
+      .fp3d-holo-link circle {
+        fill: #cffaff;
+        stroke: rgba(55, 224, 255, 0.8);
+        stroke-width: 2;
+        filter: drop-shadow(0 0 4px rgba(55, 224, 255, 0.9));
+      }
+      .fp3d-holo-min {
+        width: 150px;
+      }
+      .fp3d-holo-sheen {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(115deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, 0) 68%, rgba(255, 255, 255, 0.07) 100%);
+        pointer-events: none;
+      }
+      .fp3d-holo-scan {
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(0deg, rgba(160, 240, 255, 0.06) 0 1px, transparent 1px 4px);
+        pointer-events: none;
+      }
+      .fp3d-holo-body {
+        position: relative;
+      }
+      .fp3d-holo-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        color: #8ff0ff;
+        text-transform: uppercase;
+      }
+      .fp3d-holo-live {
+        color: #5dffb0;
+      }
+      .fp3d-holo-big {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        margin: 6px 0 1px;
+      }
+      .fp3d-holo-big b {
+        font-size: 26px;
+        color: #ffe27a;
+        text-shadow: 0 0 12px rgba(255, 210, 80, 0.85);
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-holo-big span,
+      .fp3d-holo-sub {
+        color: #aee9ff;
+      }
+      .fp3d-holo-sub {
+        margin-bottom: 6px;
+      }
+      .fp3d-holo-plants {
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: space-between;
+        column-gap: 10px;
+        margin: 0 0 5px;
+        font-size: 11px;
+        color: #aee9ff;
+      }
+      .fp3d-holo-plants b {
+        color: #ffe27a;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-holo-sub b,
+      .fp3d-holo-cell b,
+      .fp3d-holo-foot b {
+        color: #fff;
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-holo-curve {
+        display: block;
+        margin-bottom: 7px;
+        filter: drop-shadow(0 0 4px rgba(255, 215, 90, 0.7));
+      }
+      .fp3d-holo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .fp3d-holo-cell {
+        border-left: 2px solid #aee9ff;
+        padding-left: 6px;
+      }
+      .fp3d-holo-cell span {
+        font-size: 11px;
+      }
+      .fp3d-holo-bat {
+        border-left-color: #5dffb0;
+      }
+      .fp3d-holo-bat span {
+        color: #5dffb0;
+      }
+      .fp3d-holo-exp {
+        border-left-color: #4ff6ff;
+      }
+      .fp3d-holo-exp span {
+        color: #4ff6ff;
+      }
+      .fp3d-holo-imp {
+        border-left-color: #ff6fb0;
+      }
+      .fp3d-holo-imp span {
+        color: #ff8fc4;
+      }
+      .fp3d-holo-house {
+        border-left-color: #a9c0ff;
+      }
+      .fp3d-holo-wb {
+        border-left-color: #63c9ff;
+      }
+      .fp3d-holo-bar {
+        margin-top: 8px;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(160, 240, 255, 0.16);
+        overflow: hidden;
+      }
+      .fp3d-holo-bar div {
+        height: 100%;
+        background: linear-gradient(90deg, #5dffb0, #4ff6ff);
+        box-shadow: 0 0 8px rgba(80, 240, 255, 0.8);
+      }
+      .fp3d-holo-foot {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 3px;
+        font-size: 10px;
+        color: #aee9ff;
+      }
+      .fp3d-energy {
+        position: absolute;
+        left: 12px;
+        top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: calc(100% - 24px);
+        pointer-events: none;
+      }
+      .fp3d-energy-item {
+        display: grid;
+        padding: 5px 11px 6px;
+        border-radius: 12px;
+        background: var(--fp3d-chrome);
+        border-left: 3px solid var(--fp3d-line);
+        box-shadow: var(--fp3d-shadow);
+        backdrop-filter: blur(6px);
+        font-variant-numeric: tabular-nums;
+      }
+      .fp3d-energy-item span {
+        font-size: 11px;
+        color: var(--fp3d-muted);
+      }
+      .fp3d-energy-item b {
+        font: 700 15px var(--fp3d-title-font);
+      }
+      .fp3d-energy-total {
+        border-left-color: #6fd8ff;
+      }
+      .fp3d-energy-grid {
+        border-left-color: #37e0ff;
+      }
+      .fp3d-energy-export,
+      .fp3d-energy-solar {
+        border-left-color: #ffc633;
+      }
+      .fp3d-energy-battery {
+        border-left-color: #59ff8c;
+      }
+      .fp3d-flow-toggle {
+        pointer-events: auto;
+        cursor: pointer;
+        border: 0;
+        border-left: 3px solid var(--fp3d-line);
+        color: inherit;
+        text-align: left;
+        font: inherit;
+      }
+      .fp3d-flow-toggle[aria-pressed="true"] {
+        border-left-color: var(--fp3d-accent);
+      }
+      .fp3d-flow-toggle span {
+        display: none;
+      }
+      .fp3d-flow-toggle b {
+        opacity: 0.4;
+        filter: grayscale(1);
+      }
+      .fp3d-flow-toggle[aria-pressed="true"] b {
+        opacity: 1;
+        filter: none;
+      }
+      .fp3d-energy-tariff {
+        border-left-color: #b98cff;
+      }
+      /* narrow stages (portrait tablets, phones): the energy values scroll in one row */
+      @container fp3d (max-width: 900px) {
+        .fp3d-energy {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          scrollbar-width: none;
+          pointer-events: auto;
+        }
+        .fp3d-legend {
+          bottom: auto;
+          top: 62px;
+        }
+        .fp3d-has-alerts .fp3d-legend {
+          top: 110px;
+        }
+      }
+      /* a room sheet covers the lower half: the view's own controls step aside */
+      @container fp3d ((max-width: 700px) or ((orientation: portrait) and (max-width: 1000px))) {
+        .fp3d-panel-open :is(.fp3d-find-btn, .fp3d-find, .fp3d-thumbs, .fp3d-legend, .fp3d-stats, .fp3d-scenes) {
+          display: none;
+        }
+      }
+      @media (pointer: coarse) {
+        .fp3d-find-close {
+          width: 40px;
+          height: 40px;
+          right: 1px;
+          bottom: 1px;
+        }
+        .fp3d-dev {
+          padding: 6px;
+        }
+        .fp3d-pin {
+          padding: 8px 12px;
+        }
+      }
+      .fp3d-dev-full .fp3d-dev-text {
+        display: inline;
+      }
+      .fp3d-dev-name:empty {
+        display: none;
+      }
+      .fp3d-dev-name {
+        position: absolute;
+        top: calc(100% + 3px);
+        left: 50%;
+        transform: translateX(-50%);
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 1px 6px;
+        border-radius: 6px;
+        font-size: 10.5px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--fp3d-text);
+        background: rgba(10, 16, 32, 0.72);
+        pointer-events: none;
+      }
+      .fp3d-dev-sel {
+        outline: 2px solid var(--fp3d-accent);
+        outline-offset: 2px;
+      }
+      .fp3d-dev-on {
+        color: #2a1a00;
+        border-color: transparent;
+        background: var(--fp3d-glow, var(--fp3d-warm));
+        box-shadow: 0 0 16px var(--fp3d-glow, var(--fp3d-warm));
+      }
+      .fp3d-dev-on .fp3d-dev-icon {
+        background: rgba(255, 255, 255, 0.28);
+      }
+      .fp3d-dev-on .fp3d-dev-text {
+        color: #2a1a00;
+      }
+      .fp3d-dev-na {
+        opacity: 0.45;
+      }
+      .fp3d-dev-dim {
+        opacity: 0.35;
+      }
+      .fp3d-dev[hidden],
+      .fp3d-pin[hidden] {
+        display: none;
+      }
+      .fp3d-pin-active {
+        background: var(--fp3d-accent);
+        color: var(--fp3d-accent-text);
+        border-color: transparent;
+        box-shadow: 0 0 18px rgba(55, 224, 255, 0.45);
+      }
+      .fp3d-stats b {
+        color: var(--fp3d-accent);
+        font-weight: 700;
+      }
+      .fp3d-stats {
+        padding: 4px 9px;
+        border-radius: 8px;
+        background: var(--fp3d-chrome);
+        position: absolute;
+        right: 10px;
+        bottom: calc(8px + var(--fp3d-bottom-inset, 0px));
+        font-size: 11.5px;
+        color: var(--fp3d-muted);
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
+      }
+      .fp3d-error {
+        position: absolute;
+        inset: auto 16px 16px;
+        color: var(--fp3d-danger);
+      }

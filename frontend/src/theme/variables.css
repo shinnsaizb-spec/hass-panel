@@ -40,6 +40,23 @@
   --spacing-md: 12px;
   --spacing-lg: 16px;
   --spacing-xl: 20px;
+
+  /* Motion —— 缓动曲线与时长
+     ⚠️ CSS 内置的 ease / ease-out / ease-in-out 都太弱，起步不够冲、收尾拖沓，
+      UI 动效一律用下面这三条更强的自定义曲线：
+        transition: transform 160ms var(--ease-out);
+     选曲线：进场/退场 → --ease-out；屏幕内位移/形变 → --ease-in-out；
+             大位移的抽屉/面板 → --ease-drawer。
+     ⚠️ 永远不要用 ease-in：它起步慢，正好卡在用户最盯着看的那一刻，界面会显得迟钝。 */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* 时长：UI 动效尽量压在 300ms 以内，越快越跟手 */
+  --duration-press: 140ms; /* 按压反馈 */
+  --duration-fast: 180ms; /* 小控件、提示 */
+  --duration-base: 220ms; /* 下拉、选择 */
+  --duration-slow: 320ms; /* 弹窗、抽屉 */
 }
 
 [data-theme="dark"] {

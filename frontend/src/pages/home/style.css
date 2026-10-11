@@ -86,7 +86,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .theme-toggle:hover,
@@ -246,7 +246,7 @@
    去掉 both 后，动画结束（0.24s）模糊立即恢复，连续切换分组也稳定。 */
 .layout.group-swap-0,
 .layout.group-swap-1 {
-  animation: groupSwapIn 0.24s ease;
+  animation: groupSwapIn 0.24s var(--ease-out);
 }
 
 @keyframes groupSwapIn {
@@ -265,8 +265,7 @@
 }
 
 .react-grid-item {
-  transition: all 200ms ease;
-  transition-property: left, top;
+  transition: left 200ms var(--ease-out), top 200ms var(--ease-out);
   display: flex !important;
   padding: 8px;
   box-sizing: border-box;
@@ -280,7 +279,7 @@
   height: 100% !important;
   margin: 0 !important;
   overflow: visible;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   position: relative;
 }
 
@@ -327,9 +326,11 @@ body.ripple-on .react-grid-item > div:hover::after {
   background-size: 150% 150%, 220% 220%;
 }
 
-.react-grid-item > div:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .react-grid-item > div:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
 }
 
 /* 暗色下卡片外观同样由 theme/liquid-glass.css 的 [data-theme='dark'] 变量控制。 */
@@ -559,7 +560,7 @@ body.ripple-on .react-grid-item > div:hover::after {
 .layout.editing .react-grid-item.react-draggable-dragging > div {
   animation: none;
   transform: scale(1.02);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s var(--ease-out);
 }
 
 /* 非编辑模式下停止抖动 */
@@ -590,6 +591,16 @@ div {
   pointer-events: none; /* 防止内部元素的事件干扰 */
 }
 
+/* 抖动错峰：十几张卡整齐同步地抖会显得很机械，按列错开一点更像「活的」。
+   （这是「错峰」原则用在循环动画上的变体：30-80ms 一档就够，再大就显得散。） */
+.layout.editing .react-grid-item:nth-child(3n) > div {
+  animation-delay: 0.08s;
+}
+
+.layout.editing .react-grid-item:nth-child(3n + 2) > div {
+  animation-delay: 0.16s;
+}
+
 /* 确保拖拽手柄可以响应事件 */
 .layout.editing .react-grid-item {
   pointer-events: auto;
@@ -600,7 +611,7 @@ div {
 .layout.editing .react-grid-item.react-draggable-dragging > div {
   animation: none;
   transform: scale(1.02);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s var(--ease-out);
   pointer-events: none;
 }
 
@@ -661,7 +672,7 @@ div {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .sidebar-toggle {
@@ -675,7 +686,7 @@ div {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .sidebar-toggle:hover {
@@ -697,7 +708,7 @@ div {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .settings-toggle:hover {
@@ -792,9 +803,11 @@ div {
   margin: 20px;
   box-shadow: 0 2px 8px var(--color-shadow);
 }
-.empty-state:hover {
-  cursor: pointer;
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .empty-state:hover {
+    cursor: pointer;
+    transform: translateY(-2px);
+  }
 }
 
 .empty-state h2 {
@@ -830,7 +843,7 @@ div {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .language-toggle:hover {
@@ -852,7 +865,7 @@ div {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .config-toggle:hover {
@@ -888,7 +901,7 @@ div {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .fullscreen-toggle:hover {
@@ -939,7 +952,7 @@ div {
   -webkit-backdrop-filter: blur(10px);
   border-bottom-left-radius: var(--border-radius-large);
   box-shadow: 0 2px 12px var(--color-shadow);
-  animation: header-peek-in 0.18s ease-out;
+  animation: header-peek-in 0.18s var(--ease-out);
 }
 
 @keyframes header-peek-in {
@@ -984,7 +997,7 @@ div {
   padding: 10px;
   margin-top: 8px;
   min-width: 150px;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.2s var(--ease-out);
   border: 1px solid var(--color-border);
   backdrop-filter: blur(10px);
 }
@@ -1004,7 +1017,7 @@ div {
   border-radius: 8px;
   cursor: pointer;
   color: var(--color-text-primary);
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   text-align: left;
   margin-bottom: 4px;
 }
@@ -1013,9 +1026,11 @@ div {
   margin-bottom: 0;
 }
 
-.theme-option:hover {
-  background-color: var(--color-background-hover);
-  transform: translateX(2px);
+@media (hover: hover) and (pointer: fine) {
+  .theme-option:hover {
+    background-color: var(--color-background-hover);
+    transform: translateX(2px);
+  }
 }
 
 .theme-option.active {
@@ -1072,7 +1087,7 @@ div {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   z-index: 100;
 }
 

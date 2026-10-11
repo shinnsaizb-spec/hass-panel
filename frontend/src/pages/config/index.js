@@ -413,6 +413,62 @@ const getCardTypes = (t, groups = []) => ({
       }
     ]
   },
+  Floorplan3DCard: {
+    name: t('cards.floorplan3d'),
+    icon: mdiFloorPlan,
+    fields: [
+      {
+        key: 'title',
+        label: t('fields.title'),
+        type: 'text',
+        default: t('cardTitles.floorplan3d')
+      },
+      {
+        key: 'theme',
+        label: t('fields.fp3dTheme'),
+        type: 'select',
+        default: 'day',
+        options: [
+          { value: 'day', label: t('fields.fp3dThemeDay') },
+          { value: 'blueprint', label: t('fields.fp3dThemeBlueprint') },
+          { value: 'neon', label: t('fields.fp3dThemeNeon') }
+        ],
+        hint: t('fields.fp3dThemeHint')
+      },
+      {
+        key: 'wallMode',
+        label: t('fields.fp3dWallMode'),
+        type: 'select',
+        default: 'auto',
+        options: [
+          { value: 'auto', label: t('fields.fp3dWallModeAuto') },
+          { value: 'cut', label: t('fields.fp3dWallModeCut') }
+        ],
+        hint: t('fields.fp3dWallModeHint')
+      },
+      {
+        key: 'showToolbar',
+        label: t('fields.fp3dToolbar'),
+        type: 'switch',
+        default: true,
+        hint: t('fields.fp3dToolbarHint')
+      },
+      {
+        key: 'explode',
+        label: t('fields.fp3dExplode'),
+        type: 'switch',
+        default: true,
+        hint: t('fields.fp3dExplodeHint')
+      },
+      {
+        key: 'group',
+        label: t('groups.selectGroup'),
+        type: 'group-select',
+        groups: groups,
+        default: 'default'
+      }
+    ]
+  },
   CurtainCard: {
     name: t('cards.curtain'),
     icon: mdiCurtains,
@@ -1569,7 +1625,12 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
 
             <Button
               className="floorplan-button"
-              onClick={() => navigate('/floorplan')}
+              // 新标签页打开：编辑器是整页的，开在同一个标签会把设置页冲掉。
+              // 用 origin+pathname 拼绝对地址，这样面板部署在子路径下也能正确打开。
+              onClick={() => {
+                const { origin, pathname } = window.location;
+                window.open(`${origin}${pathname}#/floorplan`, '_blank', 'noopener');
+              }}
               icon={<Icon path={mdiFloorPlan} size={12} />}
             >
               {t('floorplan.title')}

@@ -18,7 +18,7 @@
   position: relative;
   width: 90%;
   max-width: 1280px;
-  animation: modalFadeIn 0.3s ease;
+  animation: modalFadeIn 0.3s var(--ease-out);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   overflow: hidden;
@@ -62,7 +62,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -79,9 +79,11 @@
   }
 }
 
-.custom-modal-close:hover {
-  background: rgba(0, 0, 0, 0.7);
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .custom-modal-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: scale(1.1);
+  }
 }
 
 @keyframes modalFadeIn {

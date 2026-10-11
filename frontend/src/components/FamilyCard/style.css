@@ -36,7 +36,7 @@
   gap: 8px;
   border-radius: 12px;
   background: var(--color-card-bg-transparent) !important;
-  transition: transform 0.2s;
+  transition: transform 0.2s var(--ease-out);
   padding: 10px 0;
 }
 [data-theme="dark"] .family-person {
@@ -53,9 +53,11 @@
   --color-mode: #333;
 }
 
-.family-person:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
+@media (hover: hover) and (pointer: fine) {
+  .family-person:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+  }
 }
 
 .person-avatar {

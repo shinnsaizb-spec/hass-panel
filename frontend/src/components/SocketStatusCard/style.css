@@ -24,14 +24,16 @@
   border-radius: 12px;
   background: var(--color-card-bg-transparent);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.socket-button:hover {
-  transform: translateY(-3px);
+@media (hover: hover) and (pointer: fine) {
+  .socket-button:hover {
+    transform: translateY(-3px);
+  }
 }
 
 .socket-button:active {

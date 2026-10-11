@@ -32,12 +32,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
-.control-button:hover {
-  background: var(--color-hover);
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .control-button:hover {
+    background: var(--color-hover);
+    transform: translateY(-2px);
+  }
 }
 
 .control-button:active {
@@ -74,13 +76,15 @@
   border-radius: 12px;
   background: var(--color-card-bg-transparent);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   position: relative;
   overflow: hidden;
 }
 
-.light-button:hover {
-  transform: translateY(-3px);
+@media (hover: hover) and (pointer: fine) {
+  .light-button:hover {
+    transform: translateY(-3px);
+  }
 }
 
 .light-button:active {

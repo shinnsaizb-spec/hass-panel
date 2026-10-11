@@ -39,7 +39,7 @@ import { useNavigate } from 'react-router-dom';
 
 // 这些卡片内部是「自己按渲染尺寸绘制」的（地图 / 摄像头），
 // 参与内容缩放会画错、溢出卡片框，所以不缩放，直接铺满卡片即可。
-const NO_SCALE_CARD_TYPES = new Set(['MapCard', 'CameraCard', 'IFrameCard']);
+const NO_SCALE_CARD_TYPES = new Set(['MapCard', 'CameraCard', 'IFrameCard', 'Floorplan3DCard']);
 
 /** 主页只显示「可见 且 没被放进下拉屏」的卡片；inDrawer 的卡片由 TopDrawer 负责渲染 */
 const isHomeVisible = (c) => !!c && c.visible !== false && c.inDrawer !== true;
@@ -210,6 +210,7 @@ function Home({ sidebarVisible, setSidebarVisible }) {
       BatteryCard: 330,
       MemoryCard: 300,
       IFrameCard: 430,
+      Floorplan3DCard: 460,
     };
 
     // 合并插件卡片的默认高度（运行时加载，按 manifest.defaultHeight）

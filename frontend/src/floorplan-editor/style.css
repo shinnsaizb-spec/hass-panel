@@ -1,0 +1,37 @@
+/* ==========================================================================
+   户型图编辑器（React 封装层）
+   --------------------------------------------------------------------------
+   编辑器自己的样式由 Lit 带在 shadow DOM 里（上游的 `static styles`），
+   这里只负责把宿主元素撑满、以及加载/失败提示的占位。
+   ========================================================================== */
+
+.fp-editor-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fp-editor-mount {
+  width: 100%;
+  height: 100%;
+}
+
+/* 自定义元素默认是 inline，必须显式 block + 撑满，否则编辑器量不到高度 */
+.fp-editor-mount fp3d-editor {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fp-editor-fail {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: var(--color-background, #fafafa);
+  pointer-events: none;
+}

@@ -419,7 +419,7 @@
   border-radius: 50%;
   cursor: pointer;
   color: var(--color-text-secondary);
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .pve-vm-action-btn:hover {

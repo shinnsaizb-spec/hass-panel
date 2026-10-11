@@ -33,6 +33,7 @@ import DiskCard from '../components/DiskCard';
 import BatteryCard from '../components/BatteryCard';
 import MemoryCard from '../components/MemoryCard';
 import IFrameCard from '../components/IFrameCard';
+import Floorplan3DCard from '../components/Floorplan3DCard';
 // 注意：内置的 NotifyHistoryCard（旧版消息通知）已移除，
 // 消息通知请用插件版（plugin-dev/notify-pro，cardType = NotifyHistoryCardPro）。
 
@@ -68,6 +69,7 @@ const builtinCards = {
   BatteryCard,
   MemoryCard,
   IFrameCard,
+  Floorplan3DCard,
   CameraCard: CameraSection,
 };
 

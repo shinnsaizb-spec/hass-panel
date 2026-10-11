@@ -91,12 +91,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
-.icon-button:hover {
-  background-color: var(--color-hover);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:hover {
+    background-color: var(--color-hover);
+    transform: translateY(-1px);
+  }
 }
 
 /* Dark theme styles */
@@ -119,7 +121,7 @@
   border-color: var(--color-border);
   color: var(--color-text-primary);
   border-radius: 6px;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .initialize-box .ant-input:hover,
@@ -139,15 +141,17 @@
   height: 40px;
   border-radius: 6px;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
-.initialize-box .ant-btn-primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-} 
+@media (hover: hover) and (pointer: fine) {
+  .initialize-box .ant-btn-primary:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  } 
+}
 .help-button {
   color: var(--color-text-primary);
   font-size: 12px;

@@ -39,7 +39,7 @@ const MAX_H = 24; // ≈ 660px
 const DRAWER_ROW_HEIGHT = 14; // 配合 margin 让 1 行 ≈ 14px，h 即「行数」
 
 // 地图 / 摄像头这种「自己按渲染尺寸绘制」的卡片不参与内容缩放（缩放会画错、溢出卡片框）。
-const NO_SCALE_CARD_TYPES = new Set(['MapCard', 'CameraCard']);
+const NO_SCALE_CARD_TYPES = new Set(['MapCard', 'CameraCard', 'IFrameCard', 'Floorplan3DCard']);
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 

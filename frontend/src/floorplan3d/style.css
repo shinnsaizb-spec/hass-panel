@@ -1,0 +1,126 @@
+/* ==========================================================================
+   户型图 3D 视图（React 封装层）
+   --------------------------------------------------------------------------
+   引擎自带的样式在 vendor.css 里（从 neonplan3d 抽取，MIT）。
+   这里只做三件事：
+     1) 把引擎的深色配色变量覆盖成项目自己的浅色简洁风
+     2) 定义容器布局（host 铺满、工具栏浮在上面）
+     3) 空状态提示
+   ⚠️ 必须排在 vendor.css 之后（组件里先 import vendor.css）才能覆盖变量。
+   ========================================================================== */
+
+/* ---------- 浅色配色：复用项目主题变量，跟随全局深浅色 ---------- */
+.fp3d-root.fp3d-light {
+  --fp3d-bg: var(--color-background, #fafafa);
+  --fp3d-bg2: var(--color-card-bg, #ffffff);
+  --fp3d-chrome: rgba(255, 255, 255, 0.9);
+  --fp3d-chrome-solid: var(--color-card-bg, #ffffff);
+  --fp3d-line: var(--color-border, #eceff1);
+  --fp3d-text: var(--color-text-primary, #263238);
+  --fp3d-muted: var(--color-text-secondary, #546e7a);
+  --fp3d-accent: var(--color-primary, #ffb74d);
+  --fp3d-accent-text: #3a2600;
+  --fp3d-soft: #5b7cff;
+  --fp3d-warm: var(--color-primary-dark, #ffa726);
+  --fp3d-danger: var(--color-error, #ff4444);
+  --fp3d-shadow: 0 6px 20px rgba(38, 50, 56, 0.12);
+  color-scheme: light;
+}
+
+/* ---------- 容器 ---------- */
+.fp3d-root {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  overflow: hidden;
+  border-radius: var(--border-radius-medium, 12px);
+  background: var(--fp3d-bg2);
+}
+
+.fp3d-host {
+  position: absolute;
+  inset: 0;
+}
+
+/* 引擎自己会往 host 里塞 canvas 和标签层 */
+.fp3d-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- 空状态 ---------- */
+.fp3d-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--fp3d-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+/* ---------- 工具栏 ---------- */
+.fp3d-toolbar {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 20px);
+  z-index: 5;
+}
+
+.fp3d-toolbar-seg {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--fp3d-chrome);
+  border: 1px solid var(--fp3d-line);
+  box-shadow: var(--fp3d-shadow);
+}
+
+.fp3d-toolbar-seg button,
+.fp3d-toolbar-btn {
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  border: none;
+  background: none;
+  color: var(--fp3d-muted);
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fp3d-toolbar-btn {
+  background: var(--fp3d-chrome);
+  border: 1px solid var(--fp3d-line);
+  box-shadow: var(--fp3d-shadow);
+  min-height: 30px;
+}
+
+.fp3d-toolbar-seg button.is-on {
+  background: var(--fp3d-accent);
+  color: var(--fp3d-accent-text);
+  font-weight: 600;
+}
+
+.fp3d-toolbar-seg button:hover:not(.is-on),
+.fp3d-toolbar-btn:hover {
+  color: var(--fp3d-text);
+}
+
+/* 独立按钮的「打开」态（目前只有「3D 摆放」用） */
+.fp3d-toolbar-btn.is-on {
+  background: var(--fp3d-accent);
+  border-color: var(--fp3d-accent);
+  color: var(--fp3d-accent-text);
+  font-weight: 600;
+}

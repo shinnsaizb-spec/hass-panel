@@ -22,7 +22,7 @@
     0 0 0 5px #d0d0d0,
     0 5px 15px rgba(0,0,0,0.3);
   transform-style: preserve-3d;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 /* Glass effect on the washing machine window */
@@ -144,7 +144,7 @@
   right: 10px;
   z-index: 12;
   box-shadow: 0 0 3px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .status-indicator.active {

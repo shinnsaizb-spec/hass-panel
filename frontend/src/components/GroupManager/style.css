@@ -27,7 +27,7 @@
   background-color: var(--color-background-secondary, rgba(0, 0, 0, 0.02));
   border-radius: 8px;
   margin-bottom: 8px;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 .group-list-item:hover {

@@ -164,7 +164,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   box-shadow: 0 2px 4px var(--color-shadow);
 }
 
@@ -207,7 +207,7 @@
   background: var(--color-primary);
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   box-shadow: 0 2px 4px var(--color-shadow);
 }
 

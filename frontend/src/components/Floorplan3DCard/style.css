@@ -1,0 +1,53 @@
+/* ===== 3D 户型图卡片 ===== */
+
+/* 复用 BaseCard 外壳，强制撑满网格单元（照抄 MapCard / IFrameCard 的写法） */
+.floorplan3d-card {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.floorplan3d-card-body {
+  flex: 1 1 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  margin: 0 var(--spacing-md) var(--spacing-md);
+  border-radius: var(--border-radius-medium, 12px);
+}
+
+/* 3D 视图铺满 body（body 是 position:relative 且有确定高度） */
+.floorplan3d-card-body .fp3d-root {
+  position: absolute;
+  inset: 0;
+  height: auto;
+}
+
+/* 还没画房间 / 加载失败时的占位 */
+.floorplan3d-card-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: var(--spacing-md);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.floorplan3d-card-empty-title {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.floorplan3d-card-empty-hint {
+  max-width: 90%;
+  opacity: 0.8;
+}

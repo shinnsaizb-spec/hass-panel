@@ -153,7 +153,7 @@
   color: var(--color-text-primary);
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  transition: background 0.15s ease, transform 0.1s ease, color 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s var(--ease-out), color 0.15s ease;
 }
 
 [data-theme='dark'] .map-card-ctrl {

@@ -106,7 +106,7 @@
   background: transparent;
   border-radius: 8px;
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 
@@ -126,7 +126,7 @@
   border-radius: 6px !important;
   border: 1px solid var(--color-border) !important;
   background: var(--color-background) !important;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   height: 28px !important;
   min-height: 28px !important;
   font-size: 13px;
@@ -300,7 +300,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   opacity: 0;
   transform: scale(0.8);
   pointer-events: none;
@@ -328,7 +328,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   z-index: 100;
 }
 @media (max-width: 767px) {
@@ -375,7 +375,7 @@
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   cursor: pointer;
   padding: 20px;
   display: flex;
@@ -386,9 +386,37 @@
   border: 1px solid var(--color-border);
 }
 
-.config-card:hover {
-  transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+  .config-card:hover {
+    transform: translateY(-2px);
+  }
 }
+
+/* 卡片列表入场：一张张淡入，比整屏一起蹦出来更自然。
+   30ms 一档、最多错到第 8 张（210ms 封顶）—— 再往后就不再推迟，否则最后几张会显得慢。
+   ⚠️ 用 backwards 填充，延迟期间停在「透明」而不是先闪一下原样。 */
+@keyframes configCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.config-list .config-card {
+  animation: configCardIn 0.22s var(--ease-out) backwards;
+}
+
+.config-list .config-card:nth-child(2) { animation-delay: 0.03s; }
+.config-list .config-card:nth-child(3) { animation-delay: 0.06s; }
+.config-list .config-card:nth-child(4) { animation-delay: 0.09s; }
+.config-list .config-card:nth-child(5) { animation-delay: 0.12s; }
+.config-list .config-card:nth-child(6) { animation-delay: 0.15s; }
+.config-list .config-card:nth-child(7) { animation-delay: 0.18s; }
+.config-list .config-card:nth-child(8) { animation-delay: 0.21s; }
 
 /* 支持backdrop-filter的浏览器应用毛玻璃效果 */
 @supports (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px)) {
@@ -531,7 +559,7 @@
   background: var(--color-background) !important;
   border: 1px solid var(--color-border) !important;
   border-radius: 4px !important;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 .switch-item .ant-select-selector:hover {

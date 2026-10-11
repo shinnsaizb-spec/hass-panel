@@ -67,7 +67,7 @@
   height: 30rem;
   padding: 0;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   box-shadow: 0 2px 4px var(--color-shadow);
   z-index: 1;
   transform: translate(-50%, -50%);
@@ -237,7 +237,7 @@
   border-radius: 50%;
   border: 1px solid rgb(198, 194, 194);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .temp-preset:nth-child(1) { background: #ffd6aa; }
@@ -267,7 +267,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius-small);
   min-width: 100px;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
 }
 
 .effect-trigger:hover {
@@ -415,7 +415,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   box-shadow: 0 2px 4px var(--color-shadow);
   margin-bottom: var(--spacing-xs);
   opacity: 0.8;
@@ -589,11 +589,13 @@
 }
 
 .light-scene-icon {
-  transition: transform 0.2s linear;
+  transition: transform 0.2s var(--ease-out);
 }
 
-.light-scene-btn:hover .light-scene-icon {
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .light-scene-btn:hover .light-scene-icon {
+    transform: scale(1.1);
+  }
 }
 
 /* 该情景里的灯全开着时高亮（图标变主题色，背景淡染） */
@@ -619,7 +621,7 @@
   cursor: pointer;
   transform: translate(-50%, -50%);
   box-shadow: 0 2px 4px var(--color-shadow);
-  transition: all 0.3s ease;
+  transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   z-index: 2;
 }
 

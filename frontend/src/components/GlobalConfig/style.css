@@ -130,7 +130,7 @@
     border-radius: var(--border-radius-small);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
     /* 保存时按钮里要塞一个转圈图标，用 inline-flex 保证对齐 */
     display: inline-flex;
     align-items: center;
@@ -179,7 +179,7 @@
     color: var(--color-text-primary);
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   }
   
   .global-config-form-item .reset-button:hover {
@@ -193,7 +193,7 @@
     border-radius: var(--border-radius-small);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
     background: var(--color-background);
     border: 1px solid var(--color-border);
     color: var(--color-text-primary);
@@ -204,7 +204,7 @@
     border-radius: var(--border-radius-small);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
     background: var(--color-background);
     border: 1px solid var(--color-border);
     color: var(--color-text-primary);
@@ -224,7 +224,7 @@
     color: white;
     font-size: 12px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color var(--duration-base) var(--ease-out), border-color var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out), box-shadow var(--duration-base) var(--ease-out), opacity var(--duration-base) var(--ease-out), transform var(--duration-base) var(--ease-out);
   }
   
   .global-config-form-item .upload-button:hover {

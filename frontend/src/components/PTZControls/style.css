@@ -137,7 +137,7 @@
   padding: 0 !important;
   touch-action: manipulation;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   position: absolute;
   
   z-index: 2;
@@ -190,6 +190,8 @@
 
 .ptz-button:active {
   background-color: rgba(80, 80, 80, 0.9) !important;
+  transform: scale(0.96);
+  transition-duration: var(--duration-press);
 }
 
 .ptz-center {
@@ -254,6 +256,8 @@
 
 .ptz-zoom-controls .ptz-button:active {
   background-color: rgba(70, 70, 70, 0.7) !important;
+  transform: scale(0.96);
+  transition-duration: var(--duration-press);
 }
 
 .ptz-spacer {

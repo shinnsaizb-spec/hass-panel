@@ -23,3 +23,38 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* ==============================================================================
+   减少动效（系统「减弱动态效果」/ prefers-reduced-motion）
+   ------------------------------------------------------------------------------
+   前庭功能敏感的用户会被位移、缩放、旋转类动效引起不适，所以系统开了这个开关就要降级。
+   ⚠️ 原则是「更少更轻」，不是「全部关掉」：
+     · 装饰性的循环动画（脉冲、旋转、漂浮、抖动…）→ 直接停
+     · 位移 / 缩放 / 旋转类过渡 → 去掉
+     · 颜色 / 透明度 / 阴影这类「状态提示」→ 保留，只是缩短
+   这样状态变化依然看得见，但不会再有让人不适的运动。
+   ============================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  /* 1) 停掉装饰性动画。0.01ms + 跑 1 次 = 瞬间到终态（保留 fill-mode: forwards 的最终样式） */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  /* 2) 过渡只保留不产生位移的属性，并把时长压短 */
+  *,
+  *::before,
+  *::after {
+    transition-property: opacity, color, background-color, border-color, box-shadow,
+      fill, stroke !important;
+    transition-duration: var(--duration-fast) !important;
+    transition-timing-function: var(--ease-out) !important;
+  }
+
+  /* 3) 平滑滚动也属于「运动」 */
+  html {
+    scroll-behavior: auto !important;
+  }
+}
