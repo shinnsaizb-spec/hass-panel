@@ -6,10 +6,8 @@ import LightControl from './LightControl';
 import CardSlotPopup from './CardSlotPopup';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { iconSizeCss, normalizeIconSize } from '../../utils/iconSize';
+import { isEntityOn } from '../../utils/entityState';
 import { configApi } from '../../utils/api';
-
-// 视为「开启」的状态值（不同 domain 叫法不同）
-const ON_STATES = ['on', 'open', 'home', 'playing', 'active', 'detected', 'cleaning', 'heat', 'cool'];
 
 // ------------------------------------------------------------------------------
 // 「卡片位」按钮
@@ -17,10 +15,14 @@ const ON_STATES = ['on', 'open', 'home', 'playing', 'active', 'detected', 'clean
 // · 绑定了卡片 → 点一下弹出那张卡片
 // · 没绑定卡片 → 点一下直接开关绑定的传感器
 // · 图标按绑定传感器的状态在「运行时图标 / 停止时图标」之间切换（图片，支持 GIF）
+//
+// ⚠️ 「算不算运行中」的判断在 `utils/entityState.js` 的 `isEntityOn()`：
+//    卡片位可以用 `slot.onStates` 自定义（在编辑器里配「运行时状态」）；
+//    没配就走默认白名单（灯 / 开关那套）。
 // ------------------------------------------------------------------------------
 function CardSlotButton({ slot, onOpenCard }) {
   const ent = useEntity(slot.entityId || 'unknown', { returnNullIfNotFound: true });
-  const isOn = !!ent && ON_STATES.includes(ent.state);
+  const isOn = isEntityOn(ent && ent.state, slot.onStates);
   // 绑了传感器 → 按状态在「运行时 / 停止时图标」之间切换；没绑 → 用默认图标
   const img = slot.entityId ? (isOn ? slot.imageOn : slot.imageOff) : slot.image;
   const px = normalizeIconSize(slot.size, 30);
@@ -153,11 +155,11 @@ function FloorPlan({ lights }) {
             {light.image && <img
               src={light.image}
               alt={light.name}
-              className={`light-layer ${light.state === 'on' ? 'active' : ''}`}
+              className={`light-layer ${isEntityOn(light.state, light.onStates) ? 'active' : ''}`}
               style={{ pointerEvents: 'none', width: imageSize, height: imageSize, left: imageLeft, top: imageTop }}
             />}
             <button
-              className={`room-light-button ${light.state === 'on' ? 'active' : ''}`}
+              className={`room-light-button ${isEntityOn(light.state, light.onStates) ? 'active' : ''}`}
               style={{
                 position: 'absolute',
                 ...light.position,

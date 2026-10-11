@@ -6,8 +6,11 @@ import { useLanguage } from '../../i18n/LanguageContext';
 import { configApi } from '../../utils/api';
 import { getMdiIcons } from '../../utils/helper';
 import { normalizeIconSize } from '../../utils/iconSize';
+import { buildEntityOptions } from '../../utils/entityOptions';
+import { candidateStates } from '../../utils/entityState';
 import CardSlotPopup from '../LightOverviewCard/CardSlotPopup';
 import AttachmentManagerModal from '../AttachmentManagerModal';
+import AnyEntityToggle from '../ConfigField/AnyEntityToggle';
 import './style.css';
 
 // ==============================================================================
@@ -42,6 +45,70 @@ function Row({ label, children }) {
     <div className="loe-row">
       <span className="loe-label">{label}</span>
       {children}
+    </div>
+  );
+}
+
+/**
+ * 实体数据：把所选实体当前的**状态 / 域 / device_class / 全部属性**摊开给用户看，
+ * 并列出「可能的状态值」—— 点一下就能加进「运行时状态」。
+ *
+ * 为什么需要它：不同域的实体状态值五花八门（lock 是 locked/unlocked、climate 是
+ * heat/cool/auto…、数值传感器干脆是 21.5），光看实体名根本猜不到该往「运行时状态」里填什么。
+ */
+function EntityData({ entityId, entity, onStates, onToggleState, t }) {
+  const [open, setOpen] = useState(false);
+  const domain = String(entityId || '').split('.')[0];
+  const attrs = (entity && entity.attributes) || {};
+  const picked = Array.isArray(onStates) ? onStates : [];
+  const states = candidateStates(entityId, entity, picked);
+
+  return (
+    <div className="loe-entity-data">
+      <button type="button" className="loe-entity-data-toggle" onClick={() => setOpen((v) => !v)}>
+        <span>{t('lightOverviewEditor.viewEntityData')}</span>
+        <span className="loe-entity-data-caret">{open ? '▾' : '▸'}</span>
+      </button>
+      {open ? (
+        <div className="loe-entity-data-body">
+          <div className="loe-entity-data-line">
+            <span className="loe-entity-data-k">{t('lightOverviewEditor.currentState')}</span>
+            <code className="loe-entity-data-state">{entity && entity.state ? entity.state : '—'}</code>
+            <span className="loe-entity-data-k">domain</span>
+            <code>{domain || '—'}</code>
+            {attrs.device_class ? (
+              <>
+                <span className="loe-entity-data-k">device_class</span>
+                <code>{attrs.device_class}</code>
+              </>
+            ) : null}
+          </div>
+          <div className="loe-entity-data-line">
+            <span className="loe-entity-data-k">{t('lightOverviewEditor.possibleStates')}</span>
+            <span className="loe-entity-data-chips">
+              {states.length ? (
+                states.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`loe-state-chip ${picked.includes(s) ? 'is-picked' : ''}`}
+                    title={t('lightOverviewEditor.pickStateHint')}
+                    onClick={() => onToggleState(s)}
+                  >
+                    {s}
+                  </button>
+                ))
+              ) : (
+                <span className="loe-entity-data-none">{t('lightOverviewEditor.noStateYet')}</span>
+              )}
+            </span>
+          </div>
+          <details className="loe-entity-data-attrs">
+            <summary>attributes</summary>
+            <pre>{JSON.stringify(attrs, null, 2)}</pre>
+          </details>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -151,17 +218,31 @@ export default function LightOverviewEditor({ config, onPatch }) {
     };
   }, []);
 
-  // 实体下拉（灯 / 开关）
+  // 实体下拉：**默认只列灯 / 开关**（原有行为）；打开「显示全部实体」才列全部域。
+  // 房间的「选择实体」和卡位的「绑定实体」各管各的开关，互不影响。
   const allEntities = getAllEntities() || {};
-  const entityOptions = useMemo(
-    () =>
-      Object.entries(allEntities)
-        .filter(([id]) => id.startsWith('light.') || id.startsWith('switch.'))
-        .map(([id, e]) => ({
-          value: id,
-          label: `${(e.attributes && e.attributes.friendly_name) || id} (${id})`,
-        })),
-    [allEntities]
+  const [anyRoomEntity, setAnyRoomEntity] = useState(false);
+  const [anyCardEntity, setAnyCardEntity] = useState(false);
+  const roomEntityId = selectedRoom ? selectedRoom.entity_id : null;
+  const cardEntityId = selectedCard ? selectedCard.entityId : null;
+
+  // ⚠️ 必须把「当前已选中的值」keep 进去：antd 的 Select 拿到不在 options 里的 value 时，
+  //    下拉框上会退化成显示**裸实体 id**（拿不到友好名）。
+  const roomEntityOptions = useMemo(
+    () => buildEntityOptions(allEntities, { allowAny: anyRoomEntity, keep: [roomEntityId] }),
+    [allEntities, anyRoomEntity, roomEntityId]
+  );
+  const cardEntityOptions = useMemo(
+    () => buildEntityOptions(allEntities, { allowAny: anyCardEntity, keep: [cardEntityId] }),
+    [allEntities, anyCardEntity, cardEntityId]
+  );
+
+  // 卡位绑的实体本身 + 它「可能的状态值」候选（给「运行时状态」下拉当选项）
+  const cardEntity = cardEntityId ? allEntities[cardEntityId] : null;
+  const cardStateOptions = candidateStates(
+    cardEntityId,
+    cardEntity,
+    selectedCard ? selectedCard.onStates : null
   );
 
   // 图标下拉：直接渲染出图标样式（并带 searchText 供搜索）
@@ -412,11 +493,12 @@ export default function LightOverviewEditor({ config, onPatch }) {
           optionFilterProp="label"
           value={selectedRoom.entity_id || undefined}
           onChange={(v) => updateRoom(selected.index, { entity_id: v || '' })}
-          options={entityOptions}
+          options={roomEntityOptions}
           style={{ width: '100%' }}
           placeholder={t('configField.selectEntityPlaceholder')}
         />
       </Row>
+      <AnyEntityToggle checked={anyRoomEntity} onChange={setAnyRoomEntity} indent={68} />
 
       <Row label={t('configField.selectIcon')}>
         <AutoComplete
@@ -494,11 +576,12 @@ export default function LightOverviewEditor({ config, onPatch }) {
           optionFilterProp="label"
           value={selectedCard.entityId || undefined}
           onChange={(v) => updateCard(selected.index, { entityId: v || '' })}
-          options={entityOptions}
+          options={cardEntityOptions}
           style={{ width: '100%' }}
           placeholder={t('lightOverviewEditor.placeholderBindEntity')}
         />
       </Row>
+      <AnyEntityToggle checked={anyCardEntity} onChange={setAnyCardEntity} indent={68} />
 
       {/* 绑定的卡片：点了弹出它；不绑就只开关上面的传感器 */}
       <Row label={t('lightOverviewEditor.bindCard')}>
@@ -519,6 +602,33 @@ export default function LightOverviewEditor({ config, onPatch }) {
           没绑传感器 → 只用一个默认图标（可挑 mdi 图标，也可上传图片） */}
       {selectedCard.entityId ? (
         <>
+          <Row label={t('lightOverviewEditor.onStates')}>
+            <Select
+              mode="tags"
+              size="small"
+              allowClear
+              value={selectedCard.onStates || []}
+              onChange={(v) => updateCard(selected.index, { onStates: v })}
+              options={cardStateOptions.map((s) => ({ value: s, label: s }))}
+              placeholder={t('lightOverviewEditor.onStatesPlaceholder')}
+              style={{ width: '100%' }}
+            />
+          </Row>
+          {/* ⚠️ 类名别叫 .loe-hint —— 那个类名这个文件里已经有了（工具栏的提示文字，
+              带 `flex: 1 1 200px`），在竖向 flex 面板里会把这段提示撑成 200px 高。 */}
+          <p className="loe-state-hint">{t('lightOverviewEditor.onStatesHint')}</p>
+          <EntityData
+            entityId={selectedCard.entityId}
+            entity={cardEntity}
+            onStates={selectedCard.onStates}
+            onToggleState={(s) => {
+              const cur = Array.isArray(selectedCard.onStates) ? selectedCard.onStates : [];
+              updateCard(selected.index, {
+                onStates: cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s],
+              });
+            }}
+            t={t}
+          />
           <ImageRow
             label={t('lightOverviewEditor.imageOn')}
             value={selectedCard.imageOn}
@@ -645,7 +755,9 @@ export default function LightOverviewEditor({ config, onPatch }) {
             const iconPx = iconPxOf(room);
             return (
               <button
-                key={room.entity_id || i}
+                // ⚠️ 必须带下标：两个房间绑同一个实体是合法配置（比如一个传感器管两处灯），
+                //    只按 entity_id 做 key 会撞车 → React 重复 key 警告、元素可能重复/丢失。
+                key={`${room.entity_id || 'room'}-${i}`}
                 type="button"
                 className={`loe-light-btn ${isSel ? 'is-selected' : ''}`}
                 style={{

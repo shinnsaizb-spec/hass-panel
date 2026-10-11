@@ -13,7 +13,10 @@
 }
 
 /* ---------------- 左图 + 右面板 ---------------- */
+/* ⚠️ 预览图是正方形，右边设置面板的高度**跟它绑在一起**（同一个变量），
+   超出的部分在面板里滚动 —— 别再单独写死一个高度，改一处就够。 */
 .loe-main {
+  --loe-preview: 380px;
   display: flex;
   gap: 14px;
   align-items: flex-start;
@@ -21,7 +24,7 @@
 
 .loe-area {
   position: relative;
-  flex: 0 0 380px;
+  flex: 0 0 var(--loe-preview);
   max-width: 100%;
   aspect-ratio: 1;
   box-sizing: border-box;
@@ -38,6 +41,11 @@
 .loe-side {
   flex: 1 1 auto;
   min-width: 0;
+  /* 和左边预览图一样高；内容超了就在这里面滚 */
+  height: var(--loe-preview);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .loe-side-empty {
@@ -46,7 +54,10 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  /* 撑满 .loe-side（也就是和左边预览图同高），否则会变成顶部一小块 */
+  height: 100%;
   min-height: 180px;
+  box-sizing: border-box;
   padding: 24px 16px;
   border: 1px dashed var(--color-border);
   border-radius: var(--border-radius-small);
@@ -68,6 +79,9 @@
 
   .loe-side {
     width: 100%;
+    /* 上下布局时不锁高度，让它自然长（否则手机上会被压成一条） */
+    height: auto;
+    overflow-y: visible;
   }
 }
 
@@ -351,4 +365,143 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ==========================================================================
+   卡片位：「运行时状态」+ 实体数据查看
+   --------------------------------------------------------------------------
+   ⚠️ 这里的提示段落**不能**复用上面的 `.loe-hint` —— 那个类名是工具栏提示用的，
+      带 `flex: 1 1 200px`；本面板是竖向 flex 容器，撞上去会把这段文字撑成 200px 高
+      （表现就是「中间空了一大截」）。所以单独起名并显式 `flex: 0 0 auto`。
+   ========================================================================== */
+.loe-state-hint {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-light);
+}
+
+.loe-entity-data {
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-small, 6px);
+  overflow: hidden;
+}
+
+.loe-entity-data-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.loe-entity-data-toggle:hover {
+  background: var(--color-background);
+}
+
+.loe-entity-data-caret {
+  font-size: 10px;
+  color: var(--color-text-light);
+}
+
+.loe-entity-data-body {
+  padding: 8px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+  font-size: 11px;
+}
+
+.loe-entity-data-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.loe-entity-data-k {
+  color: var(--color-text-light);
+}
+
+.loe-entity-data-body code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--color-background-curtain-panel, #fff);
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--color-text-primary);
+}
+
+.loe-entity-data-state {
+  font-weight: 500;
+  color: var(--color-primary-dark) !important;
+}
+
+.loe-entity-data-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.loe-state-chip {
+  padding: 1px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background-curtain-panel, #fff);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+
+.loe-state-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.loe-state-chip.is-picked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.loe-entity-data-none {
+  color: var(--color-text-light);
+}
+
+.loe-entity-data-attrs {
+  margin-top: 2px;
+}
+
+.loe-entity-data-attrs summary {
+  font-size: 11px;
+  color: var(--color-text-light);
+  cursor: pointer;
+}
+
+.loe-entity-data-attrs pre {
+  margin: 4px 0 0;
+  max-height: 180px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-background-curtain-panel, #fff);
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
