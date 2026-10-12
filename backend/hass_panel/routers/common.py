@@ -443,7 +443,6 @@ async def initialize(data: InitializeData):
         db.add(admin_user)
         
         # 创建Home Assistant配置
-        hass_url = data.hass_url.rstrip("/")
         hass_config = HassConfig(
             hass_url=data.hass_url,
             hass_token=data.hass_token

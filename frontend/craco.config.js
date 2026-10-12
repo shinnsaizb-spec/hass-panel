@@ -33,12 +33,24 @@ const GO2RTC_ORIGIN = process.env.GO2RTC_ORIGIN || GO2RTC_TARGET;
 
 module.exports = {
   webpack: {
-    configure: {
-      ignoreWarnings: [
-        {
-          module: /node_modules\/@antv/,
-        },
-      ],
+    configure: (webpackConfig) => {
+      // 忽略 @antv 相关警告（沿用原配置）
+      webpackConfig.ignoreWarnings = [
+        ...(webpackConfig.ignoreWarnings || []),
+        { module: /node_modules\/@antv/ },
+      ];
+
+      // 放宽 workbox 预缓存单文件上限。
+      // ⚠️ 默认是 2MB：主包（main.js）一旦超过它会被**静默跳过**，结果是
+      //    Service Worker 装上了、断网后却打不开应用（核心 JS 不在缓存里）。
+      //    这里提到 20MB 兜底；主包瘦身（去掉 @mdi/js 整包）后通常用不到这么大。
+      for (const p of webpackConfig.plugins || []) {
+        const name = p && p.constructor && p.constructor.name;
+        if ((name === 'InjectManifest' || name === 'GenerateSW') && p.config) {
+          p.config.maximumFileSizeToCacheInBytes = 20 * 1024 * 1024;
+        }
+      }
+      return webpackConfig;
     },
   },
   devServer: {

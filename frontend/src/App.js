@@ -15,8 +15,9 @@ import Login from './pages/login';
 import InitializePage from './pages/initialize';
 import { systemApi } from './utils/api';
 import Loading from './components/Loading';
-// 插件系统：①先设置 window.HassPanelBridge（必须在加载插件前）；②启动后加载插件
-import './plugin/bridge';
+// 插件系统：window.HassPanelBridge 由 plugin/loader 在**真正要加载插件时**动态建立
+// （bridge 里 `import * as antd / @hakit/core / @mdi/js` 会把整包拖进首屏——
+//  插件是可选功能，没装插件的用户不该为此付体积）。
 import { loadPlugins } from './plugin/loader';
 
 // 将需要使用 useNavigate 的逻辑移到单独的组件中

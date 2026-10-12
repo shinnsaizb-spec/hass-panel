@@ -51,6 +51,16 @@ async def lifespan(app: FastAPI):
     logger.configure(**logger_config)
  
     logger.debug("start lifespan")
+
+    # 启动时清一遍过期缓存文件（原来只有「被再次读取」的过期项才会被删，
+    # 没人再读的会永久留在磁盘）
+    try:
+        removed = file_cache.cleanup()
+        if removed:
+            logger.info(f"已清理 {removed} 个过期缓存文件")
+    except Exception as e:
+        logger.warning(f"清理缓存失败（不影响启动）: {e}")
+
     asyncio.create_task(async_task())
     scheduler.add_job(update_energy_statistics, 'interval', seconds=3500)
     scheduler.start()
@@ -59,3 +69,9 @@ async def lifespan(app: FastAPI):
     
     logger.debug("end lifespan")
     scheduler.shutdown()
+    # 关掉共享 aiohttp session（进程级单例，正常退出时释放连接）
+    try:
+        from hass_panel.utils.http_client import close_shared_session
+        await close_shared_session()
+    except Exception:
+        pass

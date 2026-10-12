@@ -25,3 +25,11 @@ def get_shared_session() -> aiohttp.ClientSession:
     if _shared_session is None or _shared_session.closed:
         _shared_session = aiohttp.ClientSession()
     return _shared_session
+
+
+async def close_shared_session() -> None:
+    """关闭共享 session（应用退出时调用；下次 get 会自动重建）。"""
+    global _shared_session
+    if _shared_session is not None and not _shared_session.closed:
+        await _shared_session.close()
+    _shared_session = None

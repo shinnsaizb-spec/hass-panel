@@ -118,6 +118,9 @@ async def _maybe_save_images(item: dict) -> dict:
 
     NOTIFY_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     timeout = aiohttp.ClientTimeout(total=10)
+    # 单张图上限 10MB：原来 `await resp.read()` 把远端图片整个读进内存，
+    # 一个超大图 URL 就能吃内存（图片代理那条路径有上限，这条漏了）
+    max_bytes = 10 * 1024 * 1024
     # 共享 session：原来是每条 URL 请求都新建一个 ClientSession
     session = get_shared_session()
     for url in urls:
@@ -130,8 +133,22 @@ async def _maybe_save_images(item: dict) -> dict:
                     continue
                 ext = ct.split("/")[-1].split("+")[0][:5] or "png"
                 fname = f"{uuid.uuid4().hex}.{ext}"
+                total = 0
+                too_big = False
                 with open(NOTIFY_IMAGE_DIR / fname, "wb") as fp:
-                    fp.write(await resp.read())
+                    async for chunk in resp.content.iter_chunked(64 * 1024):
+                        total += len(chunk)
+                        if total > max_bytes:
+                            too_big = True
+                            break
+                        fp.write(chunk)
+                if too_big:
+                    logger.warning(f"[notify] 图片过大（>{max_bytes // 1024 // 1024}MB），跳过: {url}")
+                    try:
+                        os.remove(NOTIFY_IMAGE_DIR / fname)
+                    except OSError:
+                        pass
+                    continue
                 item["message"] = item["message"].replace(url, f"./api/upload/notify/{fname}")
         except Exception as e:
             logger.warning(f"[notify] 保存图片失败 {url}: {e}")

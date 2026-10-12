@@ -149,7 +149,7 @@ def list_all_plugins():
     return {"plugins": _PLUGIN_CACHE, "count": len(_PLUGIN_CACHE)}
 
 
-@router.post("/rescan")
+@router.post("/rescan", dependencies=[Depends(get_current_user)])
 def rescan_plugins():
     """重新扫描插件目录。上传新插件后不想重启容器时，可调用此接口立即生效。"""
     plugins = scan_plugins()

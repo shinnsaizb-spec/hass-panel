@@ -32,6 +32,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 
     
 # 安装 Python 依赖
+# ⚠️ 这里是硬编码列表（没有读 backend/requirements.txt）。改后端依赖时**两处都要改**。
+#    bcrypt 必须显式列出来：core/hash_utils.py 直接 `import bcrypt`
+#    （原来靠 passlib[bcrypt] 的传递依赖带进来，passlib 已弃用，别依赖这个巧合）。
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     fastapi \
     uvicorn \
@@ -44,7 +47,7 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     pyyaml \
     sqlalchemy \
     pyjwt \
-    passlib[bcrypt] \
+    bcrypt \
     apscheduler \
     onvif-zeep
 

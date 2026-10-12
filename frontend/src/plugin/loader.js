@@ -103,6 +103,13 @@ export function getPluginCardHeights() {
 /** 启动加载所有插件。幂等，重复调用不会重复注册。 */
 export async function loadPlugins() {
   try {
+    // ⚠️ 必须先把插件桥建起来（插件 bundle 在模块求值时就会读 window.HassPanelBridge）。
+    //    initBridge() 里动态加载 @mdi/js（6.3MB 整包）——原来的写法是 App.js 顶部
+    //    静态 import，会让整包进主包（实测主包 6.1MB）；插件是可选功能，
+    //    没装插件的用户不该为此付体积。
+    const { initBridge } = await import('./bridge');
+    await initBridge();
+
     // 先拉「卡片显示名 + 禁用状态」，让配置页能拿到自定义设置
     await loadCardSettings();
     // no-store：避免浏览器缓存旧的插件清单（entry 地址可能已变化）

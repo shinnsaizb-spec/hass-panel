@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   mdiThermometer,
 } from '@mdi/js';
@@ -9,7 +9,9 @@ import './style.css';
 import { useEntity, useHistory } from '@hakit/core';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react'
-import ReactECharts from 'echarts-for-react';
+// echarts 只在这张卡片里用（源 54MB / 打包后约 1MB）——静态引入会让所有用户的首屏
+// 都背上它。改成按需加载：图表区先留白，加载完再渲染。
+const ReactECharts = React.lazy(() => import('echarts-for-react'));
 
 // 从大数组中均匀采样指定数量的元素
 function sampleArray(array, sampleCount) {
@@ -181,12 +183,14 @@ function SensorChart({ entity_id, color,unit }) {
   };
 
   return (
-    <ReactECharts 
-      option={chartOption} 
-      style={{ height: '100%', width: '100%' }}
-      notMerge={true}
-      lazyUpdate={true}
-    />
+    <Suspense fallback={<div style={{ height: '100%' }} />}>
+      <ReactECharts 
+        option={chartOption} 
+        style={{ height: '100%', width: '100%' }}
+        notMerge={true}
+        lazyUpdate={true}
+      />
+    </Suspense>
   );
 }
 

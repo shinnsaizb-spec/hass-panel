@@ -50,7 +50,6 @@ import {
   mdiBatteryOutline,
   mdiWeb,
 } from '@mdi/js';
-import * as mdiIcons from '@mdi/js';
 import { getPluginCardCatalog, getCardNameOverrides, getCardDisabled } from '../../plugin/loader';
 import { resolveCardDisplayName } from '../../utils/cardTranslation';
 import AddCardModal from '../../components/AddCardModal';
@@ -68,6 +67,21 @@ import UploadPluginModal from '../../components/UploadPluginModal';
 import CardManagerModal from '../../components/CardManagerModal';
 import HaConfigModal from '../../components/HaConfigModal';
 import AttachmentManagerModal from '../../components/AttachmentManagerModal';
+import loadAllMdi from '../../plugin/mdi-full';
+
+// ⚠️ 这里**绝不能**写 `import * as mdiIcons from '@mdi/js'`：
+//    那是 6.3MB / 约 7000 个图标的整包，会把主包直接撑大（实测主包曾达 6.5MB，
+//    首屏加载明显变慢）。插件卡片的图标（manifest 里的 `mdiXxx` 名字）只在
+//    「确实存在插件卡片」时才需要按名查表，所以改成**动态加载 + 缓存**：
+//    没装插件的用户完全不用付这份体积。（走 mdi-full 的 CJS 入口，
+//    避免和主包的具名导入共享模块实例而把整包提进 main，详见该文件注释。）
+let _allMdi = null;
+async function loadAllMdiIcons() {
+  if (!_allMdi) {
+    _allMdi = await loadAllMdi();
+  }
+  return _allMdi;
+}
 
 // 添加默认图标常量
 const DEFAULT_CARD_ICON = mdiHelpCircle;
@@ -1124,7 +1138,7 @@ function getMergedCardTypes(t, groups = []) {
       // 插件卡片显示名来自 manifest（可被「插件管理」重命名），有覆盖名时用覆盖名
       name: resolveCardDisplayName(c.cardType, t, c.name, overrides),
       defaultName: resolveCardDisplayName(c.cardType, t, c.name, {}),
-      icon: mdiIcons[c.icon] || DEFAULT_CARD_ICON,
+      icon: (_allMdi && _allMdi[c.icon]) || DEFAULT_CARD_ICON,
       fields,
       plugin: true,
       disabled: disabled.has(c.cardType),
@@ -1147,7 +1161,16 @@ function ConfigPage({ sidebarVisible, setSidebarVisible }) {
   // 插件是运行时加载的，加载完成后广播事件；这里监听以触发重渲染，让插件卡片出现在列表里
   const [, setPluginTick] = useState(0);
   useEffect(() => {
-    const onPluginsLoaded = () => setPluginTick((v) => v + 1);
+    const onPluginsLoaded = () => {
+      setPluginTick((v) => v + 1);
+      // 插件卡片图标按需加载（见文件顶部 loadAllMdiIcons 的说明）：
+      // 加载完成后再触发一次重渲染，让图标从兜底图标换成真实图标。
+      if (getPluginCardCatalog().length) {
+        loadAllMdiIcons()
+          .then(() => setPluginTick((v) => v + 1))
+          .catch(() => {});
+      }
+    };
     window.addEventListener('hasspanel:plugins-loaded', onPluginsLoaded);
     return () => window.removeEventListener('hasspanel:plugins-loaded', onPluginsLoaded);
   }, []);
