@@ -16,6 +16,7 @@
     "antd-mobile": "5.0",
     "axios": "^1.7.9",
     "crypto-js": "^4.2.0",
+    "deep-object-diff": "^1.1.9",
     "dompurify": "^3.4.16",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
