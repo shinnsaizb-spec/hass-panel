@@ -53,6 +53,11 @@ MAX_BACKUPS = 20
 # image_id 由前端生成（`img_xxx` / `pic_xxx`），只允许这种安全字符，避免路径穿越
 IMAGE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
+# 单张图片（dataURL 原文）的大小上限：base64 长度 14MB ≈ 解码后 10MB。
+# 户型底图和家具屏显图都到不了这个量级；没有上限时一个几十 MB 的 dataURL
+# 会被整个读进内存再落盘。
+MAX_IMAGE_DATAURL_LEN = 14 * 1024 * 1024
+
 # ---------------------------------------------------------------------------
 # 「自动生成户型」用的多模态模型配置
 # ---------------------------------------------------------------------------
@@ -306,6 +311,13 @@ async def put_image(image_id: str, payload: dict = Body(...)):
     data = payload.get("data") if isinstance(payload, dict) else None
     if not isinstance(data, str) or not data:
         return generate_resp(code=400, error="data 必须是非空的 dataURL 字符串")
+    if not data.startswith("data:image/"):
+        return generate_resp(code=400, error="data 必须是图片 dataURL")
+    if len(data) > MAX_IMAGE_DATAURL_LEN:
+        return generate_resp(
+            code=400,
+            error=f"图片过大：上限约 {MAX_IMAGE_DATAURL_LEN * 3 // 4 // 1024 // 1024}MB",
+        )
     try:
         IMAGE_DIR.mkdir(parents=True, exist_ok=True)
         _image_file(image_id).write_text(data, encoding="utf-8")

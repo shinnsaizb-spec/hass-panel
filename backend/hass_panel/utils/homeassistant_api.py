@@ -1,6 +1,4 @@
 import aiohttp
-import sys
-sys.path.append(".")
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 import json
@@ -9,61 +7,41 @@ import time
 from hass_panel.utils.singleton import singleton
 from loguru import logger
 from hass_panel.models.database import SessionLocal, HassConfig
-import asyncio
-import os
-import requests
 
 @singleton
 class HomeAssistantAPI:
+    """Home Assistant API 客户端（单例，共用同一个 aiohttp session）。
+
+    ⚠️ 这个类历史上踩过两个大坑，别再犯：
+    1. `__init__` 里用**同步** requests 检查 token 且**没有超时**——而这个类在 async
+       端点里被频繁 new，HA 一不可达就阻塞整个事件循环（表现为整个面板卡死）。
+    2. 每个方法都新建 aiohttp.ClientSession——零连接复用，每次调用重新 TCP+TLS。
+       现在：构造只读本地数据库；token 校验按需异步进行，且**绝不写回数据库**
+       （校验失败只返回 False；清空令牌这种事只有用户显式改配置时才做）。
+    """
+
     def __init__(self):
-        """
-        初始化 Home Assistant API 客户端
-        配置从数据库中获取
-        """
         self.base_url = None
         self.headers = None
         self.session = None
+        # 数据类调用默认 30s；token 校验 8s（和 utils.common.check_hass_token 一致）
+        self._timeout = aiohttp.ClientTimeout(total=30)
+        self._check_timeout = aiohttp.ClientTimeout(total=8)
         self._init_config()
-        # 使用同步方法检查 token
-        self._check_token_sync()
-        
-    def _check_token_sync(self) -> None:
-        """同步方法检查 token 有效性"""
-        db = None
-        try:
-            response = requests.get(f"{self.base_url}/", headers=self.headers)
-            if response.status_code != 200:
-                db = SessionLocal()
-                hass_config = db.query(HassConfig).first()
-                if hass_config:
-                    hass_config.hass_token = ''
-                    db.commit()
-                    db.close()
-                    db = None
-                logger.error("Home Assistant token 无效")
-                raise Exception("Invalid Home Assistant token")
-        except Exception as e:
-            logger.error(f"检查 Home Assistant token 失败: {str(e)}")
-            raise Exception(f"Failed to check Home Assistant token: {str(e)}")
-        finally:
-            if db:
-                db.close()
-                logger.debug("Database connection closed in _check_token_sync")
-            
+
     def _init_config(self):
-        """初始化时的配置加载（同步方法）"""
+        """初始化时的配置加载（同步方法；只读本地 sqlite，毫秒级，不阻塞）"""
         db = SessionLocal()
         try:
             hass_config = db.query(HassConfig).first()
             if not hass_config:
                 logger.error("未找到 Home Assistant 配置")
                 raise Exception("Home Assistant configuration not found")
-            
-            
+
             if not hass_config.hass_token:
-                logger.error("数据库中的 token 为空且未找到 SUPERVISOR_TOKEN")
+                logger.error("数据库中的 token 为空")
                 raise Exception("No valid token found")
-            
+
             self.base_url = f"{hass_config.hass_url}/api"
             self.headers = {
                 "Authorization": f"Bearer {hass_config.hass_token}",
@@ -72,35 +50,48 @@ class HomeAssistantAPI:
         finally:
             db.close()
 
-    
+    def _get_session(self) -> aiohttp.ClientSession:
+        """共用的 session：不存在或被 close 过就重建。
+
+        调用方（如 energy 端点）用完会 close()，所以这里必须容忍 closed 状态，
+        否则下次调用拿到已关闭的 session 直接报错。
+        """
+        if self.session is None or self.session.closed:
+            self.session = aiohttp.ClientSession(timeout=self._timeout)
+        return self.session
+
     async def close(self):
-        """关闭 session"""
+        """关闭共享 session（下次调用会自动重建）"""
         if self.session and not self.session.closed:
             await self.session.close()
 
     async def check_token(self) -> bool:
-        """检查 token 是否有效（异步方法，用于运行时检查）"""
+        """检查 token 是否有效（异步；失败只返回 False，不动数据库）"""
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.base_url}", headers=self.headers) as response:
-                    logger.info(f"check_token response: {response.status}")
-                    return response.status == 200
+            if not self.base_url or not self.headers:
+                return False
+            session = self._get_session()
+            async with session.get(
+                f"{self.base_url}", headers=self.headers, timeout=self._check_timeout
+            ) as response:
+                logger.info(f"check_token response: {response.status}")
+                return response.status == 200
         except Exception as e:
             logger.error(f"检查 token 失败: {str(e)}")
             return False
 
     async def get_states(self) -> list:
         """获取所有实体的状态"""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{self.base_url}/states", headers=self.headers) as response:
-                if response.status >= 400:
-                    raise aiohttp.ClientResponseError(
-                        response.request_info,
-                        response.history,
-                        status=response.status,
-                        message=f"HTTP Error {response.status}"
-                    )
-                return await response.json()
+        session = self._get_session()
+        async with session.get(f"{self.base_url}/states", headers=self.headers, timeout=self._timeout) as response:
+            if response.status >= 400:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"HTTP Error {response.status}"
+                )
+            return await response.json()
 
     async def get_state(self, entity_id: str) -> Dict[str, Any]:
         """
@@ -109,16 +100,16 @@ class HomeAssistantAPI:
         Args:
             entity_id: 实体 ID
         """
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{self.base_url}/states/{entity_id}", headers=self.headers) as response:
-                if response.status >= 400:
-                    raise aiohttp.ClientResponseError(
-                        response.request_info,
-                        response.history,
-                        status=response.status,
-                        message=f"HTTP Error {response.status}"
-                    )
-                return await response.json()
+        session = self._get_session()
+        async with session.get(f"{self.base_url}/states/{entity_id}", headers=self.headers, timeout=self._timeout) as response:
+            if response.status >= 400:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"HTTP Error {response.status}"
+                )
+            return await response.json()
 
     async def call_service(self, domain: str, service: str, service_data: Optional[Dict] = None) -> Dict[str, Any]:
         """
@@ -130,29 +121,29 @@ class HomeAssistantAPI:
             service_data: 服务参数
         """
         url = f"{self.base_url}/services/{domain}/{service}"
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=self.headers, json=service_data or {}) as response:
-                if response.status >= 400:
-                    raise aiohttp.ClientResponseError(
-                        response.request_info,
-                        response.history,
-                        status=response.status,
-                        message=f"HTTP Error {response.status}"
-                    )
-                return await response.json()
+        session = self._get_session()
+        async with session.post(url, headers=self.headers, json=service_data or {}, timeout=self._timeout) as response:
+            if response.status >= 400:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"HTTP Error {response.status}"
+                )
+            return await response.json()
 
     async def get_config(self) -> Dict[str, Any]:
         """获取 Home Assistant 配置信息"""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{self.base_url}/config", headers=self.headers) as response:
-                if response.status >= 400:
-                    raise aiohttp.ClientResponseError(
-                        response.request_info,
-                        response.history,
-                        status=response.status,
-                        message=f"HTTP Error {response.status}"
-                    )
-                return await response.json()
+        session = self._get_session()
+        async with session.get(f"{self.base_url}/config", headers=self.headers, timeout=self._timeout) as response:
+            if response.status >= 400:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"HTTP Error {response.status}"
+                )
+            return await response.json()
 
     async def get_history(self, entity_id: str, start_time: Optional[str] = None, end_time: Optional[str] = None) -> list:
         """
@@ -172,26 +163,26 @@ class HomeAssistantAPI:
             params["end_time"] = end_time
         
         url = f"{self.base_url}/history/period/{start_time}" if start_time else f"{self.base_url}/history/period"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=self.headers, params=params) as response:
+        session = self._get_session()
+        async with session.get(url, headers=self.headers, params=params) as response:
                 
-                if response.status == 404:
-                    logger.error(f"实体 {entity_id} 未找到或历史数据不可用")
-                    return []
+            if response.status == 404:
+                logger.error(f"实体 {entity_id} 未找到或历史数据不可用")
+                return []
                     
-                if response.status >= 400:
-                    raise aiohttp.ClientResponseError(
-                        response.request_info,
-                        response.history,
-                        status=response.status,
-                        message=f"HTTP Error {response.status}"
-                    )
+            if response.status >= 400:
+                raise aiohttp.ClientResponseError(
+                    response.request_info,
+                    response.history,
+                    status=response.status,
+                    message=f"HTTP Error {response.status}"
+                )
                     
-                try:
-                    return await response.json()
-                except aiohttp.ContentTypeError as e:
-                    logger.error(f"解析响应失败: {str(e)}")
-                    return []
+            try:
+                return await response.json()
+            except aiohttp.ContentTypeError as e:
+                logger.error(f"解析响应失败: {str(e)}")
+                return []
 
     async def calculate_energy_consumption(self, entity_id: str, start_time: str, end_time: str) -> float:
         """

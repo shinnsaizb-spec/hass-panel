@@ -2,7 +2,7 @@ import sys
 sys.path.append('.')
 import os
 import uvicorn
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,14 +55,36 @@ app.mount("/api/plugin-assets", StaticFiles(directory=str(_plugins_dir)), name="
 app.mount("/plugins", StaticFiles(directory=str(_plugins_dir)), name="plugins")
 
 # MIDDLEWARE
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+# CORS：默认「仅同源」。面板自身就是同源部署（nginx / CRA 代理 / HA ingress 全都满足），
+# 原来的 `allow_origins=["*"] + allow_credentials=True` 是**无效且危险**的组合
+# （浏览器规范下 * 与 credentials 互斥，Starlette 会回显 Origin，等于任意网站
+# 都能带凭证跨域调用面板 API）。确需跨源时在 config/*.toml 的
+# `[security] cors_allow_origins` 里显式列出允许的来源。
+_cors_origins = [str(o) for o in (cfg.security.get('cors_allow_origins', []) or []) if str(o).strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"]
+    )
 app.add_middleware(BaseHTTPMiddleware, dispatch=proc_custom_exception)
+
+
+@app.middleware("http")
+async def add_upload_security_headers(request: Request, call_next):
+    """给上传目录（/api/upload，与面板同源）的响应加安全头。
+
+    上传接口做了文件名净化 + 扩展名白名单，但 .svg 因图标功能必须放行。
+    万一被当页面直接打开，`default-src 'none'` 会让里面的脚本全部失效；
+    而页面里 `<img src>` 引用它不受影响（img 上下文本来就不执行脚本）。
+    """
+    response = await call_next(request)
+    if request.url.path.startswith("/api/upload"):
+        response.headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 

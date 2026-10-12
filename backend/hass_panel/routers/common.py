@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -61,8 +62,11 @@ class InitializeData(BaseModel):
     hass_url: str
     hass_token: str = ""
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(get_current_user)])
 async def upload_file(file: UploadFile):
+    # ⚠️ 必须有鉴权：这个端点能往磁盘写文件，且上传目录是同源静态托管的
+    #   （`/api/upload`）——没鉴权 = 未授权任意文件写 + 存储型 XSS。
+    #   文件名净化 / 类型白名单 / 大小上限都在 `handle_upload_file` 里。
     file_name, file_path = await handle_upload_file(file, file_dir=cfg.base.upload_dir)
     logger.info(f"Upload file: {file_name}, {file_path}")
     # 返回浏览器可直接访问的 URL，而不是服务器文件系统路径。
@@ -168,8 +172,23 @@ class TranscodePayload(BaseModel):
 
 
 # 转码任务表（进程内内存）。本地单实例 NAS 工具足够；多 worker 部署需换外部存储。
-# 结构：task_id -> {"progress":0-100, "status":"running"|"done"|"error", "attachment":{...}, "error":str}
+# 结构：task_id -> {"progress":0-100, "status":"running"|"done"|"error"|"cancelled",
+#                  "attachment":{...}, "error":str, "finished_at":float}
 _TRANSCODE_TASKS: dict = {}
+
+# 已完成的任务在表里留多久（秒）：给前端轮询留出读取最终状态的时间，
+# 到点就必须删——否则这个字典只增不删，是个缓慢泄漏。
+_TRANSCODE_DONE_TTL = 600
+
+
+def _prune_transcode_tasks() -> None:
+    """清掉超过保留期的已完成任务。"""
+    now = time.time()
+    for tid in [
+        tid for tid, t in _TRANSCODE_TASKS.items()
+        if t.get("finished_at") and now - t["finished_at"] > _TRANSCODE_DONE_TTL
+    ]:
+        _TRANSCODE_TASKS.pop(tid, None)
 
 
 def _parse_ts(ts: str) -> float:
@@ -213,6 +232,7 @@ async def transcode_attachment_start(payload: TranscodePayload):
             detail="未找到 ffmpeg，无法转码（Docker 请确认镜像已装 ffmpeg；本地开发需有 go2rtc/ffmpeg.exe）",
         )
 
+    _prune_transcode_tasks()
     task_id = uuid.uuid4().hex
     _TRANSCODE_TASKS[task_id] = {
         "progress": 0,
@@ -232,6 +252,7 @@ async def transcode_attachment_start(payload: TranscodePayload):
 @router.get("/attachments/transcode/{task_id}", dependencies=[Depends(get_current_user)])
 def transcode_progress(task_id: str):
     """轮询转码进度。只回传可序列化的字段（不把内部 _proc 对象暴露出去）。"""
+    _prune_transcode_tasks()
     task = _TRANSCODE_TASKS.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在或已过期，请重新转换")
@@ -333,6 +354,7 @@ def _run_transcode(task_id: str, src: Path, ffmpeg: str, vcodec: str, crf: int):
                     pass
             task["status"] = "cancelled"
             task["error"] = None
+            task["finished_at"] = time.time()
             return
         if rc != 0:
             if out.exists():
@@ -345,10 +367,12 @@ def _run_transcode(task_id: str, src: Path, ffmpeg: str, vcodec: str, crf: int):
                 rc,
                 "".join(err_buf)[-600:],
             )
+            task["finished_at"] = time.time()
             return
         st = out.stat()
         task["progress"] = 100
         task["status"] = "done"
+        task["finished_at"] = time.time()
         task["attachment"] = {
             "name": out_name,
             "url": f"./api/upload/{out_name}",
@@ -370,6 +394,7 @@ def _run_transcode(task_id: str, src: Path, ffmpeg: str, vcodec: str, crf: int):
                 pass
         task["status"] = "error"
         task["error"] = f"转码异常: {e}"
+        task["finished_at"] = time.time()
 
 
 
@@ -408,9 +433,11 @@ async def initialize(data: InitializeData):
         
 
         # 创建管理员用户
+        # ⚠️ 必须过 hash_password（bcrypt）——原来直接把前端传来的 MD5 存库，
+        #    无盐可反查、且「哈希即口令」。initialize 页面发帖时就存成 bcrypt。
         admin_user = User(
             username=data.username,
-            hashed_password=data.password,
+            hashed_password=hash_password(data.password),
             is_active=True
         )
         db.add(admin_user)

@@ -16,7 +16,7 @@ export const useNotifyStore = create((set, get) => ({
   token: '', // webhook token，图片代理要用
 
   /** 建立 SSE 连接（幂等，重复调用只连一次）。通知总开关关闭时直接不连。 */
-  ensureStream: () => {
+  ensureStream: async () => {
     if (_started || typeof window === 'undefined') return;
     try {
       const gc = window.globalConfigCache || {};
@@ -24,9 +24,13 @@ export const useNotifyStore = create((set, get) => ({
     } catch (_) {
       /* 读不到就按默认（开）处理 */
     }
+    // EventSource 不能带 Authorization 头，后端用 notify token 鉴权（query 参数），
+    // 先取到令牌再连；取不到（未登录等）就不连。
+    const tk = await get().loadToken();
+    if (!tk) return;
     _started = true;
     try {
-      _es = new EventSource('./api/notify/stream');
+      _es = new EventSource(`./api/notify/stream?token=${encodeURIComponent(tk)}`);
       _es.addEventListener('ready', () => set({ connected: true }));
       _es.addEventListener('message', (e) => {
         let data;

@@ -11,10 +11,12 @@ engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
     poolclass=QueuePool,
-    pool_size=50,  # 增加连接池大小
-    max_overflow=50,  # 增加最大溢出连接数
-    pool_timeout=120,  # 增加超时时间
-    pool_recycle=1800  # 设置连接回收时间为30分钟
+    # SQLite 是文件库，连接越多只会越容易 "database is locked"。
+    # 原来是 50 + 50（100 个连接），对一个单文件数据库完全过剩，收敛到 10 + 10。
+    pool_size=10,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -27,8 +29,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 class HassConfig(Base):
     __tablename__ = "hass_config"
@@ -36,8 +38,8 @@ class HassConfig(Base):
     id = Column(Integer, primary_key=True, index=True)
     hass_url = Column(String, nullable=False)
     hass_token = Column(Text, nullable=False)  # 使用Text类型存储可能较长的token
-    created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 class NotifyMessage(Base):
     """webhook 通知消息。
@@ -55,7 +57,7 @@ class NotifyMessage(Base):
     format = Column(String, default="text")  # text | markdown
     persist = Column(Boolean, default=False, index=True)
     read = Column(Boolean, default=False, index=True)
-    created_at = Column(DateTime, default=datetime.now(), index=True)
+    created_at = Column(DateTime, default=datetime.now, index=True)
 
 
 class Entity(Base):
@@ -64,7 +66,7 @@ class Entity(Base):
     id = Column(Integer, primary_key=True, index=True)
     entity_id = Column(String, nullable=False, unique=True)
     name = Column(String, nullable=False, unique=True)
-    created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 Base.metadata.create_all(bind=engine) 

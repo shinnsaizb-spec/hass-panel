@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from hass_panel.core.deps import get_db
-from hass_panel.core.hash_utils import verify_password, hash_password
+from hass_panel.core.hash_utils import verify_password, hash_password, needs_rehash
 from hass_panel.core.jwt_utils import create_access_token
 from hass_panel.models.database import User
 from hass_panel.utils.common import generate_resp
@@ -45,7 +45,12 @@ async def login(
             detail="密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+    # 存量记录（MD5 直传时代存的值）登录成功即升级成 bcrypt，用户无感
+    if needs_rehash(user.hashed_password):
+        user.hashed_password = hash_password(form_data.password)
+        db.commit()
+
     access_token_expires = timedelta(days=cfg.security.ACCESS_TOKEN_EXPIRE_DAYS)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires

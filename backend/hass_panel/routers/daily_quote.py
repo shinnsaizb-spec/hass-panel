@@ -4,6 +4,7 @@ import aiohttp
 from typing import Optional
 from urllib.parse import unquote
 from loguru import logger
+from hass_panel.utils.http_client import get_shared_session
 router = APIRouter()
 
 API_ENDPOINTS = {
@@ -46,20 +47,20 @@ async def get_daily_quote(api: Optional[str] = None):
     logger.info(f"获取每日一句: {api_config['name']}")
     
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                method=api_config['method'],
-                url=api_config['url'],
-                headers=api_config['headers'],
-                timeout=aiohttp.ClientTimeout(total=100)
-            ) as response:
-                # 确保响应成功
-                # text/html;
-                if response.content_type == 'text/html':
-                    return json.loads(await response.text())
-                else:
-                    return await response.json()
-            
+        # 共享 session（原来每请求新建一个 ClientSession，零连接复用）
+        session = get_shared_session()
+        async with session.request(
+            method=api_config['method'],
+            url=api_config['url'],
+            headers=api_config['headers'],
+            timeout=aiohttp.ClientTimeout(total=100)
+        ) as response:
+            # 确保响应成功
+            # text/html;
+            if response.content_type == 'text/html':
+                return json.loads(await response.text())
+            else:
+                return await response.json()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

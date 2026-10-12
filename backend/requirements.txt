@@ -1,3 +1,8 @@
+# 依赖范围声明（下限约束）。**可复现构建请用同目录的 requirements.lock**
+# （pip install -r requirements.lock，全部锁到具体版本）——这个文件只表达
+# "至少需要什么"，任何依赖发新版本都可能改变行为（供应链风险）。
+# 更新锁：pip install -r requirements.txt && pip freeze > requirements.lock
+# （记得核对新增/移除的包，别把用不到的东西锁进去）。
 fastapi>=0.95.0
 uvicorn>=0.21.1
 pydantic>=1.10.7
@@ -13,5 +18,5 @@ aiohttp
 pyyaml
 sqlalchemy
 pyjwt
-passlib[bcrypt]
-apscheduler 
+bcrypt>=4.0
+apscheduler

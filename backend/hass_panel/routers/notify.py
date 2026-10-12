@@ -8,7 +8,7 @@ from pathlib import Path
 
 import aiohttp
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,6 +18,7 @@ from hass_panel.core.deps import get_db
 from hass_panel.models.database import NotifyMessage, SessionLocal
 from hass_panel.utils.common import generate_resp
 from hass_panel.utils.config import cfg
+from hass_panel.utils.http_client import get_shared_session
 from loguru import logger
 
 router = APIRouter(prefix="/api/notify", tags=["notify"])
@@ -117,22 +118,23 @@ async def _maybe_save_images(item: dict) -> dict:
 
     NOTIFY_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
     timeout = aiohttp.ClientTimeout(total=10)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        for url in urls:
-            try:
-                async with session.get(url) as resp:
-                    if resp.status != 200:
-                        continue
-                    ct = (resp.headers.get("Content-Type") or "").split(";")[0].strip()
-                    if not ct.startswith("image/"):
-                        continue
-                    ext = ct.split("/")[-1].split("+")[0][:5] or "png"
-                    fname = f"{uuid.uuid4().hex}.{ext}"
-                    with open(NOTIFY_IMAGE_DIR / fname, "wb") as fp:
-                        fp.write(await resp.read())
+    # 共享 session：原来是每条 URL 请求都新建一个 ClientSession
+    session = get_shared_session()
+    for url in urls:
+        try:
+            async with session.get(url, timeout=timeout) as resp:
+                if resp.status != 200:
+                    continue
+                ct = (resp.headers.get("Content-Type") or "").split(";")[0].strip()
+                if not ct.startswith("image/"):
+                    continue
+                ext = ct.split("/")[-1].split("+")[0][:5] or "png"
+                fname = f"{uuid.uuid4().hex}.{ext}"
+                with open(NOTIFY_IMAGE_DIR / fname, "wb") as fp:
+                    fp.write(await resp.read())
                 item["message"] = item["message"].replace(url, f"./api/upload/notify/{fname}")
-            except Exception as e:
-                logger.warning(f"[notify] 保存图片失败 {url}: {e}")
+        except Exception as e:
+            logger.warning(f"[notify] 保存图片失败 {url}: {e}")
     return item
 
 
@@ -183,11 +185,22 @@ def _prune(db: Session, persist_flag: bool, limit: int):
 
 
 async def _broadcast(item: dict):
-    """把一条通知推送给所有在线的 SSE 连接。"""
+    """把一条通知推送给所有在线的 SSE 连接。
+
+    队列有上限（见 notify_stream）：客户端卡住时内存不会无界增长；
+    满了先丢最旧再入新的（通知场景下最新消息比旧的有价值），
+    且**绝不 await put**——一个慢客户端不能拖住全体广播。
+    """
     dead = []
     for q in list(_subscribers):
         try:
-            await q.put(item)
+            q.put_nowait(item)
+        except asyncio.QueueFull:
+            try:
+                q.get_nowait()  # 丢最旧
+                q.put_nowait(item)
+            except (asyncio.QueueEmpty, asyncio.QueueFull):
+                pass
         except Exception:
             dead.append(q)
     for q in dead:
@@ -341,9 +354,17 @@ async def notify_clear(type: str = "all", db: Session = Depends(get_db)):
 
 
 @router.get("/stream")
-async def notify_stream():
-    """SSE 流：主页通知弹窗从这里实时接收消息。"""
-    q: asyncio.Queue = asyncio.Queue()
+async def notify_stream(token: str = ""):
+    """SSE 流：主页通知弹窗从这里实时接收消息。
+
+    EventSource 没法带 Authorization 头，所以和 /webhook 一样用 notify token
+    （query 参数）。没有这道校验时，任何能访问端口的人都能实时收听全部通知内容。
+    前端在连接前会先 /api/notify/info 取令牌（见 utils/notifyStore.js）。
+    """
+    if NOTIFY_TOKEN and token != NOTIFY_TOKEN:
+        return JSONResponse(generate_resp(code=401, error="invalid token"), status_code=401)
+    # 队列上限 100：客户端读得慢就丢最旧的，绝不让广播方或无界队列拖垮内存
+    q: asyncio.Queue = asyncio.Queue(maxsize=100)
     _subscribers.add(q)
 
     async def event_generator():
@@ -371,9 +392,57 @@ async def notify_stream():
 
 # ===== 图片代理 =====
 # 让前端不直接访问外链：可以带 HA token、限制大小、校验类型。
-# 安全上做基本防护：只放行 http/https、禁止云元数据地址、限时、限大小、校验 Content-Type。
+# 安全防护：只放行 http/https，拒绝环回 / 链路本地 / 云元数据 / 组播保留地址，
+# 限时、限大小、校验 Content-Type。
+#
+# ⚠️ 内网段（192.168/10/172.16）**不拦**：HA 的画快照 `/api/camera_proxy/...`
+#    就在内网，拦了通知里的 HA 截图全部挂。入口已有 notify token 把关
+#    （2026-10-12 起该令牌默认随机化），探测面已大幅缩小。
+import ipaddress
 
-BLOCKED_HOSTS = {"169.254.169.254", "metadata.google.internal"}
+_BLOCKED_HOSTS = {
+    'localhost', 'localhost.localdomain', 'ip6-localhost', 'ip6-loopback',
+    'metadata.google.internal', 'metadata.goog',
+}
+_BLOCKED_NETS = [
+    ipaddress.ip_network(n)
+    for n in (
+        '0.0.0.0/8',        # "this host on this network"
+        '127.0.0.0/8',      # 环回
+        '169.254.0.0/16',   # 链路本地（含云元数据 169.254.169.254）
+        '100.64.0.0/10',    # CGNAT
+        '192.0.2.0/24', '198.51.100.0/24', '203.0.113.0/24',  # 文档段
+        '224.0.0.0/4',      # 组播
+        '240.0.0.0/4',      # 保留
+        '::/128',           # IPv6 未指定
+        '::1/128',          # IPv6 环回
+        'fe80::/10',        # IPv6 链路本地
+        # 注意：**不拦** 192.168/10/172.16 和 fc00::/7（ULA）——HA 和摄像头就在内网，
+        # 拦了通知里的 HA 截图 / 摄像头封面全部挂。入口有 notify token 把关。
+    )
+]
+
+
+def _assert_url_host_allowed(url: str) -> None:
+    """校验代理目标主机：scheme 白名单 + 拒绝内部/保留地址。"""
+    from urllib.parse import urlparse
+    p = urlparse(url)
+    if p.scheme not in ("http", "https"):
+        raise ValueError("unsupported scheme")
+    host = (p.hostname or '').strip().lower().strip('.')
+    if not host:
+        raise ValueError("empty host")
+    if host in _BLOCKED_HOSTS:
+        raise ValueError(f"blocked host: {host}")
+    try:
+        addr = ipaddress.ip_address(host)
+    except ValueError:
+        return  # 是域名（如 img.example.com），放行——自用工具，够用
+    # IPv4-mapped IPv6（::ffff:127.0.0.1）要拆开再查
+    if getattr(addr, 'ipv4_mapped', None):
+        addr = addr.ipv4_mapped
+    if any(addr in net for net in _BLOCKED_NETS):
+        raise ValueError(f"blocked address: {host}")
 
 
 def _image_cfg():
@@ -403,12 +472,9 @@ async def notify_image(url: str = "", token: str = ""):
         return generate_resp(code=400, error="url required")
 
     try:
-        from urllib.parse import urlparse
-        p = urlparse(url)
-        if p.scheme not in ("http", "https"):
-            return generate_resp(code=400, error="unsupported scheme")
-        if p.hostname in BLOCKED_HOSTS:
-            return generate_resp(code=400, error="blocked host")
+        _assert_url_host_allowed(url)
+    except ValueError as e:
+        return generate_resp(code=400, error=str(e))
     except Exception:
         return generate_resp(code=400, error="bad url")
 
@@ -417,22 +483,23 @@ async def notify_image(url: str = "", token: str = ""):
 
     timeout = aiohttp.ClientTimeout(total=max(1, timeout_s))
     try:
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    return generate_resp(code=502, error=f"upstream {resp.status}")
-                ct = (resp.headers.get("Content-Type") or "").split(";")[0].strip()
-                if not ct.startswith("image/"):
-                    return generate_resp(code=415, error="not an image")
-                # 边读边限制大小，避免大图把内存打满
-                chunks = []
-                total = 0
-                async for chunk in resp.content.iter_chunked(64 * 1024):
-                    total += len(chunk)
-                    if total > max_bytes:
-                        return generate_resp(code=413, error="image too large")
-                    chunks.append(chunk)
-                return Response(content=b"".join(chunks), media_type=ct)
+        # 共享 session（连接复用）；超时按请求覆盖
+        session = get_shared_session()
+        async with session.get(url, timeout=timeout) as resp:
+            if resp.status != 200:
+                return generate_resp(code=502, error=f"upstream {resp.status}")
+            ct = (resp.headers.get("Content-Type") or "").split(";")[0].strip()
+            if not ct.startswith("image/"):
+                return generate_resp(code=415, error="not an image")
+            # 边读边限制大小，避免大图把内存打满
+            chunks = []
+            total = 0
+            async for chunk in resp.content.iter_chunked(64 * 1024):
+                total += len(chunk)
+                if total > max_bytes:
+                    return generate_resp(code=413, error="image too large")
+                chunks.append(chunk)
+            return Response(content=b"".join(chunks), media_type=ct)
     except asyncio.TimeoutError:
         return generate_resp(code=504, error="image timeout")
     except Exception as e:

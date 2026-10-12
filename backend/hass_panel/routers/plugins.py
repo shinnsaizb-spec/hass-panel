@@ -25,6 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 
 from hass_panel.core.auth_deps import get_current_user
 from hass_panel.models.database import User
+from hass_panel.utils.common import save_upload_stream
 from hass_panel.utils.config import cfg
 
 router = APIRouter(prefix="/api/plugins", tags=["plugins"])
@@ -275,9 +276,9 @@ async def upload_plugin(file: UploadFile):
 
     tmp_root = Path(tempfile.mkdtemp(prefix="plugin_upload_"))
     try:
-        zip_bytes = await file.read()
+        # 保存上传的文件（分块落盘 + 上限：别把整个 zip 读进内存）
         zip_path = tmp_root / "upload.zip"
-        zip_path.write_bytes(zip_bytes)
+        await save_upload_stream(file, str(zip_path))
 
         extract_dir = tmp_root / "extracted"
         with zipfile.ZipFile(zip_path, "r") as zf:
@@ -297,6 +298,13 @@ async def upload_plugin(file: UploadFile):
             raise HTTPException(status_code=400, detail=f"manifest.json 解析失败: {e}")
 
         pid = manifest.get("id") or plugin_dir.name
+        if not _valid_pid(str(pid)):
+            # 上传时同样要校验 id：manifest 完全由插件作者控制，
+            # `"id": "../../x"` 能让 dest 跳出插件目录
+            raise HTTPException(
+                status_code=400,
+                detail="manifest.json 的 id 含非法字符（不能带路径分隔符或 ..）",
+            )
         if not manifest.get("cardType"):
             raise HTTPException(status_code=400, detail="manifest.json 缺少 cardType")
         entry = manifest.get("entry", "plugin.js")

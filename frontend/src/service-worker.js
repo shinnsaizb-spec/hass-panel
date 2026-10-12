@@ -11,7 +11,7 @@ import { clientsClaim } from 'workbox-core';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategies';
+import { StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 clientsClaim();
@@ -106,22 +106,11 @@ registerRoute(
   })
 );
 
-// Cache API requests
-registerRoute(
-  ({ url }) => url.origin === '*',
-  new NetworkFirst({
-    cacheName: 'api-responses',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 10 * 60, // 10 minutes
-      }),
-    ],
-  })
-);
+// 注意：原来这里还有一条「缓存 API 响应」的路由：
+//     registerRoute(({ url }) => url.origin === '*', NetworkFirst(...))
+// `url.origin` 永远不可能等于字符串 '*'，这条路由**永远不匹配**（死代码），
+// 已删除。真要缓存 API 前先想清楚：响应里带用户配置，缓存在浏览器里隐患更大。
+// 图片 / 字体 / 静态资源的缓存规则保持原样。
 
 // This allows the web app to trigger skipWaiting via
 // registration.waiting.postMessage({type: 'SKIP_WAITING'})

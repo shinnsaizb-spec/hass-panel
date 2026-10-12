@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from typing import Optional, List
 import aiohttp
 import json
+import re
 from datetime import datetime
 import os
 from pathlib import Path
@@ -25,6 +26,23 @@ router = APIRouter(
 # 配置文件存储路径
 CONFIG_DIR = Path(cfg.base.user_config_dir)
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+# 版本文件只允许这两种名字：当前配置本身 + 自动备份 config-YYYYmmddHHMMSS.json。
+# ⚠️ 绝不能放开成任意文件名——这个目录里还躺着 floorplan_ai.json（**含多模态模型的
+#    API Key**）、floorplan.json、plugins_state.json、.secret_key，
+#    「任意文件名读取」等于把密钥白送（floorplan.py 小心翼翼做的 api_key 不回传
+#    会被这个入口整个绕开）。
+_VERSION_FILE_RE = re.compile(r'^config(?:-\d{14})?\.json$')
+
+
+def _resolve_version_file(filename: str) -> Path:
+    """把版本文件名收敛成 CONFIG_DIR 内的合法路径，否则 400。"""
+    if not _VERSION_FILE_RE.match(filename or ''):
+        raise HTTPException(status_code=400, detail='非法的文件名')
+    f = (CONFIG_DIR / filename).resolve()
+    if f.parent != CONFIG_DIR.resolve():
+        raise HTTPException(status_code=400, detail='非法的文件名')
+    return f
 
 
 @router.get("/config")
@@ -293,13 +311,15 @@ async def get_versions():
 async def get_version(filename: str, ):
     """获取指定版本的配置"""
     try:
-        config_file = CONFIG_DIR / filename
+        config_file = _resolve_version_file(filename)
         if not config_file.exists():
             return generate_resp(code=404, error="版本不存在")
-            
+
         with open(config_file, "r", encoding="utf-8") as f:
             config = json.load(f)
         return generate_resp(data=config)
+    except HTTPException:
+        raise
     except Exception as e:
         return generate_resp(code=500, error=str(e))
 
@@ -309,8 +329,8 @@ async def delete_version(filename: str, ):
     try:
         if filename == "config.json":
             return generate_resp(code=400, error="不能删除当前使用的配置文件")
-            
-        config_file = CONFIG_DIR / filename
+
+        config_file = _resolve_version_file(filename)
         if not config_file.exists():
             return generate_resp(code=404, error="版本不存在")
 
@@ -318,6 +338,8 @@ async def delete_version(filename: str, ):
         if not safe_remove(config_file):
             return generate_resp(code=500, error="删除失败，请检查文件是否被占用")
         return generate_resp(message="删除成功")
+    except HTTPException:
+        raise
     except Exception as e:
         return generate_resp(code=500, error=str(e))
     

@@ -1,7 +1,12 @@
-from typing import Optional, List
-from fastapi import Request
+"""FastAPI 依赖（只保留真正在用的那两个）。
+
+历史包袱清理（2026-10-12）：原来还有 `log_request_info` / `Logger` 两个函数，
+引用未定义的 `logger`、`cfg.log.allow_log`，且全项目无人 import，已删。
+"""
 from sqlalchemy.orm import Session
+
 from hass_panel.models.database import SessionLocal
+
 
 def get_db():
     db = SessionLocal()
@@ -9,29 +14,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-async def log_request_info(request: Request):
-    try:
-        logger = request.app.state.logger
-    except AttributeError:
-        return
-    try:
-        request_body = str(await request.body(), encoding='utf-8').replace('\n', '').replace(' ', '')
-    except:
-        request_body = ''
-    request_form = await request.form()
-
-    logger.info(
-        f"{request.method} request to {request.url}\n"
-        f"\tBody: {request_body}\n"
-        f"\tForm: {request_form}\n"
-        f"\tPath Params: {request.path_params}\n"
-        f"\tQuery Params: {request.query_params}\n"
-    )
-    
-async def Logger(request: Request):
-    try:
-        logger = request.app.state.logger
-        return logger
-    except AttributeError:
-        raise Exception('[*] If you want to use logger, please make sure cfg.log.allow_log is True')

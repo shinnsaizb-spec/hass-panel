@@ -22,6 +22,12 @@ class UserUpdate(BaseModel):
     password: str | None = None
     is_active: bool | None = None
 
+class PasswordUpdate(BaseModel):
+    # ⚠️ 必须走 Body：原来是普通参数（FastAPI 默认按 query 收），
+    # 密码会出现在 URL 里，被 access log / 代理日志记下来。
+    old_password: str
+    new_password: str
+
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -48,6 +54,27 @@ async def get_users(
     """获取用户列表"""
     users = db.query(User).offset(skip).limit(limit).all()
     return generate_resp(data=[user_to_response(user) for user in users])
+
+# ⚠️ /me 系列必须定义在 /{user_id} **之前**：否则 "me" 会先被
+#    `/{user_id}`（int 校验）接住，恒 422 int_parsing——这个端点从来就没通过。
+@router.get("/me")
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    """获取当前用户信息"""
+    return generate_resp(data=user_to_response(current_user))
+
+@router.put("/me/password")
+async def update_own_password(
+    payload: PasswordUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """更新当前用户密码"""
+    if not verify_password(payload.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.commit()
+    return generate_resp(message="Password updated successfully")
 
 @router.get("/{user_id}")
 async def get_user(
@@ -121,23 +148,3 @@ async def delete_user(
     db.delete(db_user)
     db.commit()
     return generate_resp(message="User deleted successfully")
-
-@router.get("/me")
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    """获取当前用户信息"""
-    return generate_resp(data=user_to_response(current_user))
-
-@router.put("/me/password")
-async def update_own_password(
-    old_password: str,
-    new_password: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """更新当前用户密码"""
-    if not verify_password(old_password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect password")
-    
-    current_user.hashed_password = hash_password(new_password)
-    db.commit()
-    return generate_resp(message="Password updated successfully") 
